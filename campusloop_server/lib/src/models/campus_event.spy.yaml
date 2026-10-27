@@ -1,0 +1,20 @@
+class: CampusEvent
+table: campus_event
+fields:
+  title: String
+  description: String
+  category: String
+  venue: String
+  organizer: String
+  organizerProfileId: int
+  dateTime: DateTime
+  endDateTime: DateTime?
+  imageUrl: String?
+  maxAttendees: int?
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  campus_event_category_idx:
+    fields: category
+  campus_event_datetime_idx:
+    fields: dateTime

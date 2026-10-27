@@ -1,0 +1,29 @@
+name: campusloop_flutter
+description: CampusLoop — Your Campus. Your Community. One Loop.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  serverpod_flutter: ^4.0.0
+  serverpod_auth_idp_flutter: ^4.0.0
+  serverpod_auth_idp_client: ^4.0.0
+  campusloop_client:
+    path: ../campusloop_client
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: CampusLoop
+      fonts:
+        - asset: fonts/placeholder.ttf

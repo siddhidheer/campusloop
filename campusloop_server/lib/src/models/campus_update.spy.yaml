@@ -1,0 +1,19 @@
+class: CampusUpdate
+table: campus_update
+fields:
+  title: String
+  content: String
+  category: String
+  authorProfileId: int
+  priority: String
+  isPublished: bool
+  publishedAt: DateTime?
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  cu_category_idx:
+    fields: category
+  cu_published_idx:
+    fields: isPublished
+  cu_published_at_idx:
+    fields: publishedAt

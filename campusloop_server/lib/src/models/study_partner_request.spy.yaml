@@ -1,0 +1,18 @@
+class: StudyPartnerRequest
+table: study_partner_request
+fields:
+  fromProfileId: int
+  toProfileId: int
+  status: String
+  matchingSubjects: List<String>
+  message: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  spr_from_to_unique_idx:
+    fields: fromProfileId, toProfileId
+    unique: true
+  spr_to_profile_idx:
+    fields: toProfileId
+  spr_status_idx:
+    fields: status

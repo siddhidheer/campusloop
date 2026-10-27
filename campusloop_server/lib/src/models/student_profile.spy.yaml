@@ -1,0 +1,16 @@
+class: StudentProfile
+table: student_profile
+fields:
+  displayName: String
+  email: String
+  department: String?
+  year: int?
+  bio: String?
+  studySubjects: List<String>
+  interests: List<String>
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  student_profile_email_unique_idx:
+    fields: email
+    unique: true

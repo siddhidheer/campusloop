@@ -1,0 +1,22 @@
+# Server configuration for production (Serverpod Cloud)
+apiServer:
+  port: 8080
+  publicHost: api.campusloop.serverpod.cloud
+  publicPort: 443
+  publicScheme: https
+
+webServer:
+  port: 8082
+  publicHost: app.campusloop.serverpod.cloud
+  publicPort: 443
+  publicScheme: https
+
+database:
+  host: postgres.campusloop.serverpod.cloud
+  port: 5432
+  name: campusloop
+  user: serverpod
+
+redis:
+  enabled: false
+

@@ -1,0 +1,18 @@
+class: Community
+table: community
+fields:
+  name: String
+  description: String
+  category: String
+  interests: List<String>
+  creatorProfileId: int
+  memberCount: int
+  imageUrl: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  community_name_unique_idx:
+    fields: name
+    unique: true
+  community_category_idx:
+    fields: category

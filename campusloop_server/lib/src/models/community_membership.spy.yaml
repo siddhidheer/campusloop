@@ -1,0 +1,13 @@
+class: CommunityMembership
+table: community_membership
+fields:
+  communityId: int
+  profileId: int
+  role: String
+  joinedAt: DateTime
+indexes:
+  cm_community_profile_unique_idx:
+    fields: communityId, profileId
+    unique: true
+  cm_profile_idx:
+    fields: profileId

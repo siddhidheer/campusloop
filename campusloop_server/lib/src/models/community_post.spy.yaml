@@ -1,0 +1,15 @@
+class: CommunityPost
+table: community_post
+fields:
+  communityId: int
+  authorProfileId: int
+  title: String
+  content: String
+  isPinned: bool
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  cp_community_idx:
+    fields: communityId
+  cp_created_idx:
+    fields: createdAt
