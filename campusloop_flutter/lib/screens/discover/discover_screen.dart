@@ -35,9 +35,9 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         title: const Text('Discover'),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: CampusTheme.deepTeal,
+          indicatorColor: CampusTheme.primaryOrange,
           indicatorWeight: 3,
-          labelColor: CampusTheme.deepTeal,
+          labelColor: CampusTheme.primaryOrange,
           unselectedLabelColor: CampusTheme.textMuted,
           labelStyle: const TextStyle(
             fontWeight: FontWeight.w600,
@@ -444,7 +444,7 @@ class _EventCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      event.title,
+                      cleanCampusTitle(event.title),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -539,7 +539,7 @@ class _EventCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              event.title,
+              cleanCampusTitle(event.title),
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

@@ -374,7 +374,7 @@ class _CommunityCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          community.name,
+                          cleanCampusTitle(community.name),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

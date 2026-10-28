@@ -1,6 +1,47 @@
 import 'package:flutter/material.dart';
 import '../../theme/campus_theme.dart';
 
+/// Clean any legacy "[SAMPLE]" text from titles.
+String cleanCampusTitle(String title) {
+  return title.replaceAll(RegExp(r'^\[SAMPLE\]\s*', caseSensitive: false), '').trim();
+}
+
+/// Official CampusLoop Orange Infinity Brand Logo.
+class OrangeInfinityLogo extends StatelessWidget {
+  final double size;
+  const OrangeInfinityLogo({super.key, this.size = 36});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF7A00), Color(0xFFFF3D00)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF6A00).withValues(alpha: 0.45),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          Icons.all_inclusive_rounded,
+          size: size * 0.65,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
+
 /// Reusable loading indicator widget.
 class CampusLoader extends StatelessWidget {
   final String? message;

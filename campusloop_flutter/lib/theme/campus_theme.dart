@@ -12,6 +12,12 @@ import 'package:flutter/material.dart';
 /// - Accent Lavender: (#B39DDB)
 class CampusTheme {
   // ── Color Palette ──
+  static const Color primaryOrange = Color(0xFFFF6A00);
+  static const Color vibrantOrange = Color(0xFFFF7A00);
+  static const Color amberOrange = Color(0xFFFF9500);
+  static const Color deepOrange = Color(0xFFE65100);
+  static const Color electricCoral = Color(0xFFFF5722);
+
   static const Color deepTeal = Color(0xFF0D6E6E);
   static const Color darkTeal = Color(0xFF094D4D);
   static const Color darkBlue = Color(0xFF1A237E);
@@ -80,13 +86,13 @@ class CampusTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: darkSurface,
       colorScheme: const ColorScheme.dark(
-        primary: deepTeal,
-        secondary: softBlue,
-        tertiary: coral,
+        primary: primaryOrange,
+        secondary: vibrantOrange,
+        tertiary: amberOrange,
         surface: darkCard,
         error: coral,
-        onPrimary: textLight,
-        onSecondary: textLight,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
         onSurface: textLight,
       ),
       appBarTheme: const AppBarTheme(
@@ -123,7 +129,7 @@ class CampusTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: deepTeal, width: 2),
+          borderSide: const BorderSide(color: primaryOrange, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -136,9 +142,10 @@ class CampusTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: deepTeal,
-          foregroundColor: textLight,
-          elevation: 0,
+          backgroundColor: primaryOrange,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shadowColor: primaryOrange.withValues(alpha: 0.4),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -152,8 +159,8 @@ class CampusTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: deepTeal,
-          side: const BorderSide(color: deepTeal),
+          foregroundColor: primaryOrange,
+          side: const BorderSide(color: primaryOrange),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -162,12 +169,12 @@ class CampusTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: softBlue,
+          foregroundColor: primaryOrange,
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: darkCardLight,
-        selectedColor: deepTeal,
+        selectedColor: primaryOrange,
         labelStyle: const TextStyle(fontSize: 13, color: textLight),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -177,7 +184,7 @@ class CampusTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: darkSurface,
-        selectedItemColor: deepTeal,
+        selectedItemColor: primaryOrange,
         unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 8,

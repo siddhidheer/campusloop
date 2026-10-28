@@ -237,7 +237,7 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              update.title,
+              cleanCampusTitle(update.title),
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
@@ -415,7 +415,7 @@ class _UpdateCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      update.title,
+                      cleanCampusTitle(update.title),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

@@ -11,12 +11,23 @@ import 'profile/profile_screen.dart';
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
+  static void switchTab(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_AppShellState>();
+    state?.setTab(index);
+  }
+
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+
+  void setTab(int index) {
+    if (mounted && index >= 0 && index < _screens.length) {
+      setState(() => _currentIndex = index);
+    }
+  }
 
   final _screens = const [
     HomeScreen(),

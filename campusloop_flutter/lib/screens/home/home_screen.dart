@@ -3,11 +3,12 @@ import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
+import '../app_shell.dart';
 
-/// Home dashboard — personalized CampusLoop landing page.
+/// Home dashboard — vibrant, personalized CampusLoop landing page.
 ///
-/// Shows welcome section, upcoming events, suggested study partners,
-/// communities, and latest announcements.
+/// Features the orange infinity brand logo, responsive non-overflowing welcome card,
+/// interactive quick action tiles, and fully working arrows and tap targets.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -87,19 +88,25 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [CampusTheme.deepTeal, CampusTheme.darkTeal],
+            const OrangeInfinityLogo(size: 34),
+            const SizedBox(width: 12),
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: Colors.white,
                 ),
-                borderRadius: BorderRadius.circular(10),
+                children: [
+                  TextSpan(text: 'Campus'),
+                  TextSpan(
+                    text: 'Loop',
+                    style: TextStyle(color: CampusTheme.primaryOrange),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.loop_rounded, size: 20, color: Colors.white),
             ),
-            const SizedBox(width: 10),
-            const Text('CampusLoop'),
           ],
         ),
         actions: [
@@ -108,7 +115,8 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Notifications coming soon'),
+                  content: Text('🔔 You are all caught up! No new notifications.'),
+                  behavior: SnackBarBehavior.floating,
                 ),
               );
             },
@@ -116,13 +124,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: _isLoading
-          ? const CampusLoader(message: 'Loading your dashboard...')
+          ? const CampusLoader(message: 'Loading your campus...')
           : _error != null
               ? CampusError(message: _error!, onRetry: _loadDashboard)
               : RefreshIndicator(
                   onRefresh: _loadDashboard,
-                  color: CampusTheme.deepTeal,
+                  color: CampusTheme.primaryOrange,
                   child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       _buildWelcomeSection(),
                       _buildQuickActions(),
@@ -130,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildStudyPartners(),
                       _buildCommunities(),
                       _buildLatestUpdates(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -140,6 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWelcomeSection() {
     final name = _profile?.displayName ?? 'Student';
     final firstName = name.split(' ').first;
+    final dept = _profile?.department;
     final hour = DateTime.now().hour;
     final greeting = hour < 12
         ? 'Good morning'
@@ -148,54 +158,121 @@ class _HomeScreenState extends State<HomeScreen> {
             : 'Good evening';
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [CampusTheme.deepTeal, CampusTheme.darkBlue],
+          colors: [
+            Color(0xFFFF6A00),
+            Color(0xFFFF3D00),
+            Color(0xFF1E293B),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: CampusTheme.deepTeal.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: const Color(0xFFFF6A00).withValues(alpha: 0.35),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$greeting, $firstName 👋',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$greeting, $firstName 👋',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    if (dept != null && dept.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          dept,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.all_inclusive_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'Your Campus. Your Community. One Loop.',
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
+          // Responsive stat chips that never overflow or fall off screen
           Row(
             children: [
-              _buildStatChip(
-                  Icons.event, '${_upcomingEvents.length}', 'Events'),
-              const SizedBox(width: 12),
-              _buildStatChip(
-                  Icons.people, '${_suggestedPartners.length}', 'Matches'),
-              const SizedBox(width: 12),
-              _buildStatChip(
-                  Icons.groups, '${_communities.length}', 'Groups'),
+              Expanded(
+                child: _buildStatChip(
+                  Icons.event_available_rounded,
+                  '${_upcomingEvents.length}',
+                  'Events',
+                  () => AppShell.switchTab(context, 1),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatChip(
+                  Icons.people_alt_rounded,
+                  '${_suggestedPartners.length}',
+                  'Matches',
+                  () => AppShell.switchTab(context, 1),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatChip(
+                  Icons.groups_rounded,
+                  '${_communities.length}',
+                  'Clubs',
+                  () => AppShell.switchTab(context, 2),
+                ),
+              ),
             ],
           ),
         ],
@@ -203,68 +280,73 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatChip(IconData icon, String count, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            '$count $label',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+  Widget _buildStatChip(
+      IconData icon, String count, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
           ),
-        ],
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 15, color: Colors.white),
+              const SizedBox(width: 5),
+              Text(
+                '$count $label',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildQuickActions() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Row(
         children: [
           _buildQuickAction(
-            Icons.event_available,
+            Icons.event_available_rounded,
             'Events',
             CampusTheme.coral,
-            () {
-              // Navigate to Discover tab
-              final shell = context.findAncestorStateOfType<State>();
-              if (shell != null) {
-                // Switch to discover tab
-              }
-            },
+            () => AppShell.switchTab(context, 1),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           _buildQuickAction(
-            Icons.handshake,
+            Icons.handshake_rounded,
             'Partners',
             CampusTheme.softBlue,
-            () {},
+            () => AppShell.switchTab(context, 1),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           _buildQuickAction(
-            Icons.groups_2,
-            'Communities',
+            Icons.groups_2_rounded,
+            'Clubs',
             CampusTheme.mint,
-            () {},
+            () => AppShell.switchTab(context, 2),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           _buildQuickAction(
-            Icons.campaign,
+            Icons.campaign_rounded,
             'Updates',
             CampusTheme.lavender,
-            () {},
+            () => AppShell.switchTab(context, 3),
           ),
         ],
       ),
@@ -278,28 +360,41 @@ class _HomeScreenState extends State<HomeScreen> {
     VoidCallback onTap,
   ) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 24, color: color),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: color,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withValues(alpha: 0.28)),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(icon, size: 24, color: color),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -311,8 +406,8 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SectionHeader(
           title: 'Upcoming Events',
-          actionLabel: 'See all',
-          onAction: () {},
+          actionLabel: 'See all →',
+          onAction: () => AppShell.switchTab(context, 1),
         ),
         if (_upcomingEvents.isEmpty)
           const Padding(
@@ -325,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 165,
+            height: 185,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -340,82 +435,100 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildEventCard(CampusEvent event) {
     final catColor = CampusTheme.categoryColor(event.category);
     final daysUntil = event.dateTime.difference(DateTime.now()).inDays;
+    final cleanTitle = cleanCampusTitle(event.title);
 
     return Container(
-      width: 260,
+      width: 270,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: catColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      event.category,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: catColor,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _showEventModal(context, event),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: catColor.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: catColor.withValues(alpha: 0.35)),
+                      ),
+                      child: Text(
+                        event.category,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: catColor,
+                        ),
                       ),
                     ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    daysUntil == 0
-                        ? 'Today'
-                        : daysUntil == 1
-                            ? 'Tomorrow'
-                            : 'In $daysUntil days',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: daysUntil <= 3
-                          ? CampusTheme.coral
-                          : CampusTheme.textMuted,
-                      fontWeight: FontWeight.w500,
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        daysUntil == 0
+                            ? 'Today'
+                            : daysUntil == 1
+                                ? 'Tomorrow'
+                                : 'In $daysUntil days',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: daysUntil <= 3
+                              ? CampusTheme.primaryOrange
+                              : CampusTheme.textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                event.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: CampusTheme.textLight,
+                  ],
                 ),
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 14, color: CampusTheme.textMuted),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      event.venue,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: CampusTheme.textMuted,
+                const SizedBox(height: 10),
+                Text(
+                  cleanTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: CampusTheme.textLight,
+                    height: 1.25,
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded,
+                        size: 14, color: CampusTheme.primaryOrange),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        event.venue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: CampusTheme.textMuted,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const Icon(Icons.arrow_forward_ios_rounded,
+                        size: 12, color: CampusTheme.textMuted),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -427,8 +540,8 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SectionHeader(
           title: 'Study Partners',
-          actionLabel: 'Find more',
-          onAction: () {},
+          actionLabel: 'Find more →',
+          onAction: () => AppShell.switchTab(context, 1),
         ),
         if (_suggestedPartners.isEmpty)
           const Padding(
@@ -441,7 +554,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 120,
+            height: 135,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -461,47 +574,53 @@ class _HomeScreenState extends State<HomeScreen> {
         0;
 
     return Container(
-      width: 150,
+      width: 155,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: CampusTheme.softBlue.withValues(alpha: 0.2),
-                child: Text(
-                  partner.displayName[0].toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: CampusTheme.softBlue,
+        child: InkWell(
+          onTap: () => _showPartnerModal(context, partner),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: CampusTheme.primaryOrange.withValues(alpha: 0.2),
+                  child: Text(
+                    partner.displayName.isNotEmpty
+                        ? partner.displayName[0].toUpperCase()
+                        : 'S',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: CampusTheme.primaryOrange,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                partner.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: CampusTheme.textLight,
+                const SizedBox(height: 8),
+                Text(
+                  partner.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: CampusTheme.textLight,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$matchCount shared ${matchCount == 1 ? 'subject' : 'subjects'}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: CampusTheme.mint,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 4),
+                Text(
+                  '$matchCount shared ${matchCount == 1 ? 'subject' : 'subjects'}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: CampusTheme.mint,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -512,9 +631,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         SectionHeader(
-          title: 'Communities',
-          actionLabel: 'Browse all',
-          onAction: () {},
+          title: 'Campus Clubs & Hubs',
+          actionLabel: 'Browse all →',
+          onAction: () => AppShell.switchTab(context, 2),
         ),
         if (_communities.isEmpty)
           const Padding(
@@ -533,24 +652,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCommunityTile(Community community) {
     final catColor = CampusTheme.categoryColor(community.category);
+    final cleanName = cleanCampusTitle(community.name);
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: ListTile(
+        onTap: () => _showCommunityModal(context, community),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: catColor.withValues(alpha: 0.15),
+            color: catColor.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: catColor.withValues(alpha: 0.3)),
           ),
-          child: Icon(Icons.groups_2, color: catColor, size: 22),
+          child: Icon(Icons.groups_2_rounded, color: catColor, size: 22),
         ),
         title: Text(
-          community.name,
+          cleanName,
           style: const TextStyle(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
         ),
@@ -558,9 +681,17 @@ class _HomeScreenState extends State<HomeScreen> {
           '${community.memberCount} members · ${community.category}',
           style: const TextStyle(fontSize: 12, color: CampusTheme.textMuted),
         ),
-        trailing: const Icon(
-          Icons.chevron_right,
-          color: CampusTheme.textMuted,
+        trailing: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: CampusTheme.primaryOrange,
+            size: 14,
+          ),
         ),
       ),
     );
@@ -570,9 +701,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         SectionHeader(
-          title: 'Latest Updates',
-          actionLabel: 'View all',
-          onAction: () {},
+          title: 'Latest Announcements',
+          actionLabel: 'View all →',
+          onAction: () => AppShell.switchTab(context, 3),
         ),
         if (_latestUpdates.isEmpty)
           const Padding(
@@ -591,25 +722,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildUpdateTile(CampusUpdate update) {
     final priorityColor = CampusTheme.priorityColor(update.priority);
+    final cleanTitle = cleanCampusTitle(update.title);
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: ListTile(
+        onTap: () => _showUpdateModal(context, update),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
-          width: 4,
-          height: 40,
+          width: 5,
+          height: 42,
           decoration: BoxDecoration(
             color: priorityColor,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(3),
           ),
         ),
         title: Text(
-          update.title,
+          cleanTitle,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
         ),
@@ -620,13 +754,386 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               fontSize: 12,
               color: CampusTheme.categoryColor(update.category),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        trailing: const Icon(
-          Icons.chevron_right,
-          color: CampusTheme.textMuted,
+        trailing: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: CampusTheme.primaryOrange,
+            size: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Bottom Sheet Modals for Interactivity ──
+
+  void _showEventModal(BuildContext context, CampusEvent event) {
+    final cleanTitle = cleanCampusTitle(event.title);
+    final catColor = CampusTheme.categoryColor(event.category);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CampusTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: catColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                event.category,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: catColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              cleanTitle,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Icon(Icons.location_on_rounded,
+                    size: 18, color: CampusTheme.primaryOrange),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    event.venue,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: CampusTheme.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.access_time_filled_rounded,
+                    size: 18, color: CampusTheme.softBlue),
+                const SizedBox(width: 8),
+                Text(
+                  '${event.dateTime.day}/${event.dateTime.month}/${event.dateTime.year} · ${event.dateTime.hour}:${event.dateTime.minute.toString().padLeft(2, '0')}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: CampusTheme.textMuted,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              event.description,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('🎉 RSVP Confirmed for $cleanTitle!'),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: CampusTheme.primaryOrange,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.check_circle_rounded),
+                label: const Text('RSVP / Register Now'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPartnerModal(BuildContext context, StudentProfile partner) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CampusTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 36,
+              backgroundColor: CampusTheme.primaryOrange.withValues(alpha: 0.2),
+              child: Text(
+                partner.displayName.isNotEmpty
+                    ? partner.displayName[0].toUpperCase()
+                    : 'S',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: CampusTheme.primaryOrange,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              partner.displayName,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            if (partner.department != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${partner.department} · ${partner.year ?? 'Student'}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: CampusTheme.textMuted,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Text(
+              partner.bio ?? 'CampusLoop student looking for study partners.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Colors.white70),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: partner.studySubjects
+                  .map((s) => Chip(
+                        label: Text(s),
+                        backgroundColor: CampusTheme.darkCardLight,
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('💬 Study invite sent to ${partner.displayName}!'),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: CampusTheme.primaryOrange,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('Connect & Study Together'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCommunityModal(BuildContext context, Community community) {
+    final cleanName = cleanCampusTitle(community.name);
+    final catColor = CampusTheme.categoryColor(community.category);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CampusTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: catColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.groups_2_rounded, color: catColor, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cleanName,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        '${community.memberCount} members · ${community.category}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: CampusTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              community.description,
+              style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('🎉 You joined $cleanName!'),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: CampusTheme.primaryOrange,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.person_add_rounded),
+                label: const Text('Join Community'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUpdateModal(BuildContext context, CampusUpdate update) {
+    final cleanTitle = cleanCampusTitle(update.title);
+    final priorityColor = CampusTheme.priorityColor(update.priority);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CampusTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${update.priority.toUpperCase()} PRIORITY',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: priorityColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  update.category,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: CampusTheme.categoryColor(update.category),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              cleanTitle,
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              update.content,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Dismiss'),
+              ),
+            ),
+          ],
         ),
       ),
     );

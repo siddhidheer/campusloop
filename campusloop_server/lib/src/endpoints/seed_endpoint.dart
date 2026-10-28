@@ -82,10 +82,10 @@ class SeedEndpoint extends Endpoint {
       profiles.add(await StudentProfile.db.insertRow(session, profile));
     }
 
-    // ── Sample Events ──
+    // ── Campus Events ──
     final eventData = [
       {
-        'title': '[SAMPLE] Tech Innovation Hackathon 2026',
+        'title': 'Tech Innovation Hackathon 2026',
         'desc': 'A 48-hour hackathon to build innovative campus solutions. '
             'Teams of 2-4 students. Prizes worth ₹50,000.',
         'cat': 'Technology',
@@ -94,7 +94,7 @@ class SeedEndpoint extends Endpoint {
         'hours': 8,
       },
       {
-        'title': '[SAMPLE] Flutter Workshop: Build Your First App',
+        'title': 'Flutter Workshop: Build Your First App',
         'desc': 'Hands-on workshop covering Flutter basics, widgets, '
             'state management, and deploying your first app.',
         'cat': 'Workshop',
@@ -103,7 +103,7 @@ class SeedEndpoint extends Endpoint {
         'hours': 4,
       },
       {
-        'title': '[SAMPLE] Campus Cultural Festival — Rhythm 2026',
+        'title': 'Campus Cultural Festival — Rhythm 2026',
         'desc': 'Annual cultural festival featuring music, dance, drama, '
             'art exhibitions, and food stalls from student clubs.',
         'cat': 'Cultural',
@@ -112,7 +112,7 @@ class SeedEndpoint extends Endpoint {
         'hours': 6,
       },
       {
-        'title': '[SAMPLE] Career Fair: Meet Industry Leaders',
+        'title': 'Career Fair: Meet Industry Leaders',
         'desc': 'Connect with recruiters from 30+ companies. Bring your '
             'resume and portfolio. Pre-registration required.',
         'cat': 'Career',
@@ -121,7 +121,7 @@ class SeedEndpoint extends Endpoint {
         'hours': 3,
       },
       {
-        'title': '[SAMPLE] AI & Data Science Seminar',
+        'title': 'AI & Data Science Seminar',
         'desc': 'Expert talks on the latest in AI, LLMs, and data science '
             'applications in industry and research.',
         'cat': 'Technology',
@@ -215,10 +215,10 @@ class SeedEndpoint extends Endpoint {
       );
     }
 
-    // ── Sample Campus Updates ──
+    // ── Campus Updates ──
     final updateData = [
       {
-        'title': '[SAMPLE] Mid-Semester Exam Schedule Released',
+        'title': 'Mid-Semester Exam Schedule Released',
         'content': 'The mid-semester examination schedule for all departments '
             'has been published. Check the academic portal for your '
             'personalized timetable. Exam dates: Nov 15-25.',
@@ -226,7 +226,7 @@ class SeedEndpoint extends Endpoint {
         'priority': 'high',
       },
       {
-        'title': '[SAMPLE] Library Extended Hours During Exams',
+        'title': 'Library Extended Hours During Exams',
         'content': 'The central library will remain open until 11 PM '
             'during the examination period (Nov 10 - Nov 30). '
             'Student ID required for entry after 8 PM.',
@@ -234,7 +234,7 @@ class SeedEndpoint extends Endpoint {
         'priority': 'normal',
       },
       {
-        'title': '[SAMPLE] Summer Internship Applications Open',
+        'title': 'Summer Internship Applications Open',
         'content': 'Applications for summer 2027 internships are now open. '
             'Visit the placement cell or check the portal for '
             'participating companies and deadlines.',
@@ -242,7 +242,7 @@ class SeedEndpoint extends Endpoint {
         'priority': 'high',
       },
       {
-        'title': '[SAMPLE] Campus Wi-Fi Upgrade Notice',
+        'title': 'Campus Wi-Fi Upgrade Notice',
         'content': 'The campus Wi-Fi network will be upgraded this weekend. '
             'Expect brief outages on Saturday between 2-6 AM. '
             'New network: CampusNet-5G.',
