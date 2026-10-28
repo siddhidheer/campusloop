@@ -64,10 +64,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.0.3-apk
-          name: "CampusLoop Android App v1.0.3"
+          tag_name: v1.0.4-apk
+          name: "CampusLoop Android App v1.0.4"
           body: |
-            ### 📱 CampusLoop Android Release v1.0.3
+            ### 📱 CampusLoop Android Release v1.0.4
             
             Download the official CampusLoop Android APK to your phone:
             

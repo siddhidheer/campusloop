@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
+import '../../models/campus_notification.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
+import '../../widgets/home/notifications_sheet.dart';
 import '../app_shell.dart';
 
 /// Home dashboard — vibrant, personalized CampusLoop landing page.
@@ -24,6 +27,11 @@ class _HomeScreenState extends State<HomeScreen> {
   List<CampusUpdate> _latestUpdates = [];
   bool _isLoading = true;
   String? _error;
+
+  // ── Notifications Center State ──
+  List<CampusNotification> _notifications = [];
+  int _unreadNotificationCount = 0;
+  final Map<int, StudentProfile> _senderProfileCache = {};
 
   @override
   void initState() {
@@ -106,6 +114,28 @@ class _HomeScreenState extends State<HomeScreen> {
         _suggestedPartners = [];
       }
 
+      // Fetch live incoming connection requests & build notifications feed
+      List<StudyPartnerRequest> incomingRequests = [];
+      if (currentProfileId != null) {
+        try {
+          incomingRequests =
+              await client.studyPartner.getIncomingRequests(currentProfileId!);
+          for (final req in incomingRequests) {
+            if (!_senderProfileCache.containsKey(req.fromProfileId)) {
+              try {
+                final sender =
+                    await client.profile.getProfile(req.fromProfileId);
+                if (sender != null) {
+                  _senderProfileCache[req.fromProfileId] = sender;
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (_) {}
+      }
+
+      await _buildNotificationsList(incomingRequests);
+
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       if (mounted) {
@@ -115,6 +145,249 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  Future<void> _buildNotificationsList(
+      List<StudyPartnerRequest> incomingRequests) async {
+    final List<CampusNotification> list = [];
+
+    // 1. Connection Requests (when anyone sends a connection request)
+    for (final req in incomingRequests) {
+      final sender = _senderProfileCache[req.fromProfileId];
+      final name = sender?.displayName ?? 'A student';
+      final dept =
+          sender?.department != null ? ' (${sender!.department})' : '';
+      final subjects = req.matchingSubjects.isNotEmpty
+          ? ' · Shared subjects: ${req.matchingSubjects.join(', ')}'
+          : '';
+      list.add(
+        CampusNotification(
+          id: 'conn_req_${req.id}',
+          category: NotificationCategory.connectionRequest,
+          title: 'New Connection Request',
+          message:
+              '$name$dept wants to connect with you on CampusLoop$subjects.',
+          timestamp: req.createdAt,
+          targetId: req.id,
+          requestPayload: req,
+          senderProfile: sender,
+          requestStatus: req.status,
+        ),
+      );
+    }
+
+    // 2. Campus Updates (new announcements and notices)
+    for (final update in _latestUpdates) {
+      list.add(
+        CampusNotification(
+          id: 'update_${update.id}',
+          category: NotificationCategory.campusUpdate,
+          title: update.title,
+          message:
+              '${update.category.toUpperCase()} · ${update.content.length > 90 ? '${update.content.substring(0, 90)}...' : update.content}',
+          timestamp: update.publishedAt ?? update.createdAt,
+          targetId: update.id,
+          updatePayload: update,
+        ),
+      );
+    }
+
+    // 3. Club Activities (clubs and student communities)
+    for (final comm in _communities) {
+      list.add(
+        CampusNotification(
+          id: 'club_${comm.id}',
+          category: NotificationCategory.clubActivity,
+          title: 'Club: ${comm.name}',
+          message:
+              '${comm.category} · ${comm.memberCount} members active. Tap to view discussions and new activities.',
+          timestamp: comm.updatedAt,
+          targetId: comm.id,
+          communityPayload: comm,
+        ),
+      );
+    }
+
+    // 4. Campus Events (workshops, hackathons, cultural fests)
+    for (final event in _upcomingEvents) {
+      list.add(
+        CampusNotification(
+          id: 'event_${event.id}',
+          category: NotificationCategory.event,
+          title: 'Upcoming Event: ${event.title}',
+          message:
+              '${event.category} · Venue: ${event.venue} on ${event.dateTime.day}/${event.dateTime.month} at ${event.dateTime.hour}:${event.dateTime.minute.toString().padLeft(2, '0')}.',
+          timestamp: event.createdAt,
+          targetId: event.id,
+          eventPayload: event,
+        ),
+      );
+    }
+
+    // Load read notification IDs from SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList('read_notification_ids') ?? [];
+      for (final n in list) {
+        if (readIds.contains(n.id)) {
+          n.isRead = true;
+        }
+      }
+    } catch (_) {}
+
+    list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    _notifications = list;
+    _unreadNotificationCount = list.where((n) => !n.isRead).length;
+  }
+
+  Future<void> _markAllNotificationsRead() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList('read_notification_ids') ?? [];
+      for (final n in _notifications) {
+        n.isRead = true;
+        if (!readIds.contains(n.id)) {
+          readIds.add(n.id);
+        }
+      }
+      await prefs.setStringList('read_notification_ids', readIds);
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = 0;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _handleNotificationTap(CampusNotification item) async {
+    item.isRead = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList('read_notification_ids') ?? [];
+      if (!readIds.contains(item.id)) {
+        readIds.add(item.id);
+        await prefs.setStringList('read_notification_ids', readIds);
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _unreadNotificationCount =
+            _notifications.where((n) => !n.isRead).length;
+      });
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context); // close modal sheet
+
+    // Navigate to corresponding tab
+    switch (item.category) {
+      case NotificationCategory.connectionRequest:
+        AppShell.switchTab(context, 1, subTab: 1); // Study Partners
+        break;
+      case NotificationCategory.event:
+        AppShell.switchTab(context, 1, subTab: 0); // Events
+        break;
+      case NotificationCategory.clubActivity:
+        AppShell.switchTab(context, 2); // Communities/Clubs
+        break;
+      case NotificationCategory.campusUpdate:
+        AppShell.switchTab(context, 3); // Updates
+        break;
+    }
+  }
+
+  Future<void> _handleAcceptRequest(CampusNotification item) async {
+    final req = item.requestPayload;
+    if (req == null || req.id == null || currentProfileId == null) return;
+    try {
+      await client.studyPartner.acceptRequest(req.id!, currentProfileId!);
+      item.requestStatus = 'accepted';
+      item.isRead = true;
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList('read_notification_ids') ?? [];
+      if (!readIds.contains(item.id)) {
+        readIds.add(item.id);
+        await prefs.setStringList('read_notification_ids', readIds);
+      }
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount =
+              _notifications.where((n) => !n.isRead).length;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '🎉 Connected with ${item.senderProfile?.displayName ?? 'peer'}!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.mint,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to accept: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.coral,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleDeclineRequest(CampusNotification item) async {
+    final req = item.requestPayload;
+    if (req == null || req.id == null || currentProfileId == null) return;
+    try {
+      await client.studyPartner.rejectRequest(req.id!, currentProfileId!);
+      item.requestStatus = 'rejected';
+      item.isRead = true;
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList('read_notification_ids') ?? [];
+      if (!readIds.contains(item.id)) {
+        readIds.add(item.id);
+        await prefs.setStringList('read_notification_ids', readIds);
+      }
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount =
+              _notifications.where((n) => !n.isRead).length;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection request declined.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to decline: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.coral,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showNotificationsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => NotificationsSheet(
+        notifications: _notifications,
+        onMarkAllRead: _markAllNotificationsRead,
+        onNotificationTap: _handleNotificationTap,
+        onAcceptRequest: _handleAcceptRequest,
+        onDeclineRequest: _handleDeclineRequest,
+      ),
+    );
   }
 
   Future<void> _sendStudyRequest(StudentProfile partner) async {
@@ -175,15 +448,54 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🔔 You are all caught up! No new notifications.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_outlined, size: 24),
+                if (_unreadNotificationCount > 0)
+                  Positioned(
+                    top: -2,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4.5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: CampusTheme.coral,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: CampusTheme.darkSurface,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: CampusTheme.coral.withValues(alpha: 0.6),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        _unreadNotificationCount > 9
+                            ? '9+'
+                            : '$_unreadNotificationCount',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            tooltip: 'Notifications',
+            onPressed: _showNotificationsSheet,
           ),
         ],
       ),
