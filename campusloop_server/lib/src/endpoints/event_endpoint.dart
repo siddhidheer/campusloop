@@ -64,7 +64,7 @@ class EventEndpoint extends Endpoint {
       return await CampusEvent.db.find(
         session,
         where: (t) =>
-            t.dateTime.greaterThan(now) & t.category.equals(category),
+            (t.dateTime > now) & t.category.equals(category),
         limit: limit,
         offset: offset,
         orderBy: (t) => t.dateTime,
@@ -73,7 +73,7 @@ class EventEndpoint extends Endpoint {
 
     return await CampusEvent.db.find(
       session,
-      where: (t) => t.dateTime.greaterThan(now),
+      where: (t) => t.dateTime > now,
       limit: limit,
       offset: offset,
       orderBy: (t) => t.dateTime,
@@ -90,8 +90,7 @@ class EventEndpoint extends Endpoint {
       session,
       limit: limit,
       offset: offset,
-      orderBy: (t) => t.dateTime,
-      orderDescending: true,
+      orderBy: (t) => t.dateTime.desc(),
     );
   }
 

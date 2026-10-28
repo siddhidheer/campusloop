@@ -1,0 +1,48 @@
+campusUpdate:
+  - createUpdate:
+  - getUpdate:
+  - listUpdates:
+  - updateUpdate:
+  - deleteUpdate:
+  - getCategories:
+community:
+  - createCommunity:
+  - getCommunity:
+  - listCommunities:
+  - searchCommunities:
+  - joinCommunity:
+  - leaveCommunity:
+  - getMembers:
+  - getJoinedCommunities:
+  - isMember:
+  - deleteCommunity:
+communityPost:
+  - createPost:
+  - listPosts:
+  - togglePin:
+  - deletePost:
+event:
+  - createEvent:
+  - getEvent:
+  - listEvents:
+  - listAllEvents:
+  - searchEvents:
+  - updateEvent:
+  - deleteEvent:
+  - getCategories:
+profile:
+  - createProfile:
+  - getProfile:
+  - getProfileByEmail:
+  - updateProfile:
+  - listProfiles:
+  - findStudyPartners:
+seed:
+  - seedDevelopmentData:
+studyPartner:
+  - sendRequest:
+  - acceptRequest:
+  - rejectRequest:
+  - getIncomingRequests:
+  - getOutgoingRequests:
+  - getConnections:

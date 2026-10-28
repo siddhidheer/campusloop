@@ -63,8 +63,7 @@ class CampusUpdateEndpoint extends Endpoint {
             t.isPublished.equals(true) & t.category.equals(category),
         limit: limit,
         offset: offset,
-        orderBy: (t) => t.publishedAt,
-        orderDescending: true,
+        orderBy: (t) => t.publishedAt.desc(),
       );
     }
 
@@ -73,8 +72,7 @@ class CampusUpdateEndpoint extends Endpoint {
       where: (t) => t.isPublished.equals(true),
       limit: limit,
       offset: offset,
-      orderBy: (t) => t.publishedAt,
-      orderDescending: true,
+      orderBy: (t) => t.publishedAt.desc(),
     );
   }
 

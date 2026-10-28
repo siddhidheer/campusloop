@@ -133,8 +133,7 @@ class StudyPartnerEndpoint extends Endpoint {
       session,
       where: (t) =>
           t.toProfileId.equals(profileId) & t.status.equals('pending'),
-      orderBy: (t) => t.createdAt,
-      orderDescending: true,
+      orderBy: (t) => t.createdAt.desc(),
     );
   }
 
@@ -147,8 +146,7 @@ class StudyPartnerEndpoint extends Endpoint {
       session,
       where: (t) =>
           t.fromProfileId.equals(profileId) & t.status.equals('pending'),
-      orderBy: (t) => t.createdAt,
-      orderDescending: true,
+      orderBy: (t) => t.createdAt.desc(),
     );
   }
 
@@ -163,8 +161,7 @@ class StudyPartnerEndpoint extends Endpoint {
           (t.fromProfileId.equals(profileId) |
               t.toProfileId.equals(profileId)) &
           t.status.equals('accepted'),
-      orderBy: (t) => t.updatedAt,
-      orderDescending: true,
+      orderBy: (t) => t.updatedAt.desc(),
     );
   }
 }

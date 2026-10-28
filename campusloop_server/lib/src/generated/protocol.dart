@@ -1,635 +1,1033 @@
-import 'package:serverpod/serverpod.dart';
-import 'student_profile.dart';
-import 'campus_event.dart';
-import 'community.dart';
-import 'community_membership.dart';
-import 'community_post.dart';
-import 'campus_update.dart';
-import 'study_partner_request.dart';
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
 
-export 'student_profile.dart';
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+// ignore_for_file: dead_code, unnecessary_type_check
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:campusloop_server/src/generated/campus_event.dart' as _i1c7au20;
+import 'package:campusloop_server/src/generated/campus_update.dart'
+    as _igo1fi26;
+import 'package:campusloop_server/src/generated/community.dart' as _iojnz86y;
+import 'package:campusloop_server/src/generated/community_membership.dart'
+    as _iwnejj4j;
+import 'package:campusloop_server/src/generated/community_post.dart'
+    as _iqq9fi66;
+import 'package:campusloop_server/src/generated/student_profile.dart'
+    as _icxrszas;
+import 'package:campusloop_server/src/generated/study_partner_request.dart'
+    as _ieluzm8w;
+import 'package:serverpod/protocol.dart' as _isp;
+import 'package:serverpod/serverpod.dart' as _is;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _iacs;
+import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
+    as _iais;
+import 'campus_event.dart' as _ieh998j0;
+import 'campus_update.dart' as _ikfbu05k;
+import 'community.dart' as _i2q09qvg;
+import 'community_membership.dart' as _ir33x8kn;
+import 'community_post.dart' as _itvhuiq9;
+import 'student_profile.dart' as _iovtxv26;
+import 'study_partner_request.dart' as _idamz02b;
 export 'campus_event.dart';
+export 'campus_update.dart';
 export 'community.dart';
 export 'community_membership.dart';
 export 'community_post.dart';
-export 'campus_update.dart';
+export 'student_profile.dart';
 export 'study_partner_request.dart';
 
-class Protocol extends SerializationManagerServer {
+class Protocol extends _is.DatabaseSerializationManager {
   Protocol._();
 
-  factory Protocol() => instance;
+  factory Protocol() => _instance;
 
-  static final Protocol instance = Protocol._();
+  static final Protocol _instance = Protocol._().._registerHostProtocols();
 
-  static final List<TableDefinition> targetTableDefinitions = [
-    TableDefinition(
-      name: 'student_profile',
-      dartName: 'StudentProfile',
-      schema: 'public',
-      module: 'campusloop',
-      columns: [
-        ColumnDefinition(
-          name: 'id',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'displayName',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'email',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'department',
-          columnType: ColumnType.text,
-          isNullable: true,
-          dartType: 'String?',
-        ),
-        ColumnDefinition(
-          name: 'year',
-          columnType: ColumnType.bigint,
-          isNullable: true,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'bio',
-          columnType: ColumnType.text,
-          isNullable: true,
-          dartType: 'String?',
-        ),
-        ColumnDefinition(
-          name: 'studySubjects',
-          columnType: ColumnType.json,
-          isNullable: false,
-          dartType: 'List<String>',
-        ),
-        ColumnDefinition(
-          name: 'interests',
-          columnType: ColumnType.json,
-          isNullable: false,
-          dartType: 'List<String>',
-        ),
-        ColumnDefinition(
-          name: 'createdAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-        ColumnDefinition(
-          name: 'updatedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-      ],
-      foreignKeys: [],
-      indexes: [
-        IndexDefinition(
-          indexName: 'student_profile_email_unique_idx',
-          elementsDefinition: [
-            IndexElementDefinition(type: IndexElementDefinitionType.column, definition: 'email'),
+  static List<_isp.TableDefinition> get targetTableDefinitions => [
+        _isp.TableDefinition(
+          name: 'campus_event',
+          dartName: 'CampusEvent',
+          schema: 'public',
+          module: 'campusloop',
+          columns: [
+            _isp.ColumnDefinition(
+              name: 'id',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int?',
+              columnDefault: 'serial',
+            ),
+            _isp.ColumnDefinition(
+              name: 'title',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'description',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'category',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'venue',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'organizer',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'organizerProfileId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'dateTime',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+            _isp.ColumnDefinition(
+              name: 'endDateTime',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: true,
+              dartType: 'DateTime?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'imageUrl',
+              columnType: _isp.ColumnType.text,
+              isNullable: true,
+              dartType: 'String?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'maxAttendees',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: true,
+              dartType: 'int?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'createdAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+            _isp.ColumnDefinition(
+              name: 'updatedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
           ],
-          type: 'btree',
-          isUnique: true,
-          isPrimary: false,
-        ),
-      ],
-    ),
-    TableDefinition(
-      name: 'campus_event',
-      dartName: 'CampusEvent',
-      schema: 'public',
-      module: 'campusloop',
-      columns: [
-        ColumnDefinition(
-          name: 'id',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'title',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'description',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'category',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'venue',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'organizer',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'organizerProfileId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'dateTime',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-        ColumnDefinition(
-          name: 'endDateTime',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: true,
-          dartType: 'DateTime?',
-        ),
-        ColumnDefinition(
-          name: 'imageUrl',
-          columnType: ColumnType.text,
-          isNullable: true,
-          dartType: 'String?',
-        ),
-        ColumnDefinition(
-          name: 'maxAttendees',
-          columnType: ColumnType.bigint,
-          isNullable: true,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'createdAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-        ColumnDefinition(
-          name: 'updatedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-      ],
-      foreignKeys: [],
-      indexes: [
-        IndexDefinition(
-          indexName: 'campus_event_category_idx',
-          elementsDefinition: [
-            IndexElementDefinition(type: IndexElementDefinitionType.column, definition: 'category'),
+          foreignKeys: [],
+          indexes: [
+            _isp.IndexDefinition(
+              indexName: 'campus_event_category_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'category',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'campus_event_datetime_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'dateTime',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
           ],
-          type: 'btree',
-          isUnique: false,
-          isPrimary: false,
+          managed: true,
         ),
-        IndexDefinition(
-          indexName: 'campus_event_datetime_idx',
-          elementsDefinition: [
-            IndexElementDefinition(type: IndexElementDefinitionType.column, definition: 'dateTime'),
+        _isp.TableDefinition(
+          name: 'campus_update',
+          dartName: 'CampusUpdate',
+          schema: 'public',
+          module: 'campusloop',
+          columns: [
+            _isp.ColumnDefinition(
+              name: 'id',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int?',
+              columnDefault: 'serial',
+            ),
+            _isp.ColumnDefinition(
+              name: 'title',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'content',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'category',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'authorProfileId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'priority',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'isPublished',
+              columnType: _isp.ColumnType.boolean,
+              isNullable: false,
+              dartType: 'bool',
+            ),
+            _isp.ColumnDefinition(
+              name: 'publishedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: true,
+              dartType: 'DateTime?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'createdAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+            _isp.ColumnDefinition(
+              name: 'updatedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
           ],
-          type: 'btree',
-          isUnique: false,
-          isPrimary: false,
-        ),
-      ],
-    ),
-    TableDefinition(
-      name: 'community',
-      dartName: 'Community',
-      schema: 'public',
-      module: 'campusloop',
-      columns: [
-        ColumnDefinition(
-          name: 'id',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'name',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'description',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'category',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'interests',
-          columnType: ColumnType.json,
-          isNullable: false,
-          dartType: 'List<String>',
-        ),
-        ColumnDefinition(
-          name: 'creatorProfileId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'memberCount',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'imageUrl',
-          columnType: ColumnType.text,
-          isNullable: true,
-          dartType: 'String?',
-        ),
-        ColumnDefinition(
-          name: 'createdAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-        ColumnDefinition(
-          name: 'updatedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-      ],
-      foreignKeys: [],
-      indexes: [
-        IndexDefinition(
-          indexName: 'community_name_unique_idx',
-          elementsDefinition: [
-            IndexElementDefinition(type: IndexElementDefinitionType.column, definition: 'name'),
+          foreignKeys: [],
+          indexes: [
+            _isp.IndexDefinition(
+              indexName: 'cu_category_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'category',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'cu_published_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'isPublished',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'cu_published_at_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'publishedAt',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
           ],
-          type: 'btree',
-          isUnique: true,
-          isPrimary: false,
+          managed: true,
         ),
-      ],
-    ),
-    TableDefinition(
-      name: 'community_membership',
-      dartName: 'CommunityMembership',
-      schema: 'public',
-      module: 'campusloop',
-      columns: [
-        ColumnDefinition(
-          name: 'id',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'communityId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'profileId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'role',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'joinedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-      ],
-      foreignKeys: [],
-      indexes: [
-        IndexDefinition(
-          indexName: 'cm_community_profile_unique_idx',
-          elementsDefinition: [
-            IndexElementDefinition(type: IndexElementDefinitionType.column, definition: 'communityId'),
-            IndexElementDefinition(type: IndexElementDefinitionType.column, definition: 'profileId'),
+        _isp.TableDefinition(
+          name: 'community',
+          dartName: 'Community',
+          schema: 'public',
+          module: 'campusloop',
+          columns: [
+            _isp.ColumnDefinition(
+              name: 'id',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int?',
+              columnDefault: 'serial',
+            ),
+            _isp.ColumnDefinition(
+              name: 'name',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'description',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'category',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'interests',
+              columnType: _isp.ColumnType.json,
+              isNullable: false,
+              dartType: 'List<String>',
+            ),
+            _isp.ColumnDefinition(
+              name: 'creatorProfileId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'memberCount',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'imageUrl',
+              columnType: _isp.ColumnType.text,
+              isNullable: true,
+              dartType: 'String?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'createdAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+            _isp.ColumnDefinition(
+              name: 'updatedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
           ],
-          type: 'btree',
-          isUnique: true,
-          isPrimary: false,
+          foreignKeys: [],
+          indexes: [
+            _isp.IndexDefinition(
+              indexName: 'community_name_unique_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'name',
+                )
+              ],
+              type: 'btree',
+              isUnique: true,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'community_category_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'category',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+          ],
+          managed: true,
         ),
-      ],
-    ),
-    TableDefinition(
-      name: 'community_post',
-      dartName: 'CommunityPost',
-      schema: 'public',
-      module: 'campusloop',
-      columns: [
-        ColumnDefinition(
-          name: 'id',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int?',
+        _isp.TableDefinition(
+          name: 'community_membership',
+          dartName: 'CommunityMembership',
+          schema: 'public',
+          module: 'campusloop',
+          columns: [
+            _isp.ColumnDefinition(
+              name: 'id',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int?',
+              columnDefault: 'serial',
+            ),
+            _isp.ColumnDefinition(
+              name: 'communityId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'profileId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'role',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'joinedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+          ],
+          foreignKeys: [],
+          indexes: [
+            _isp.IndexDefinition(
+              indexName: 'cm_community_profile_unique_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'communityId',
+                ),
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'profileId',
+                ),
+              ],
+              type: 'btree',
+              isUnique: true,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'cm_profile_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'profileId',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+          ],
+          managed: true,
         ),
-        ColumnDefinition(
-          name: 'communityId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
+        _isp.TableDefinition(
+          name: 'community_post',
+          dartName: 'CommunityPost',
+          schema: 'public',
+          module: 'campusloop',
+          columns: [
+            _isp.ColumnDefinition(
+              name: 'id',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int?',
+              columnDefault: 'serial',
+            ),
+            _isp.ColumnDefinition(
+              name: 'communityId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'authorProfileId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'title',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'content',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'isPinned',
+              columnType: _isp.ColumnType.boolean,
+              isNullable: false,
+              dartType: 'bool',
+            ),
+            _isp.ColumnDefinition(
+              name: 'createdAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+            _isp.ColumnDefinition(
+              name: 'updatedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+          ],
+          foreignKeys: [],
+          indexes: [
+            _isp.IndexDefinition(
+              indexName: 'cp_community_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'communityId',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'cp_created_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'createdAt',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+          ],
+          managed: true,
         ),
-        ColumnDefinition(
-          name: 'authorProfileId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
+        _isp.TableDefinition(
+          name: 'student_profile',
+          dartName: 'StudentProfile',
+          schema: 'public',
+          module: 'campusloop',
+          columns: [
+            _isp.ColumnDefinition(
+              name: 'id',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int?',
+              columnDefault: 'serial',
+            ),
+            _isp.ColumnDefinition(
+              name: 'displayName',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'email',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'department',
+              columnType: _isp.ColumnType.text,
+              isNullable: true,
+              dartType: 'String?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'year',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: true,
+              dartType: 'int?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'bio',
+              columnType: _isp.ColumnType.text,
+              isNullable: true,
+              dartType: 'String?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'studySubjects',
+              columnType: _isp.ColumnType.json,
+              isNullable: false,
+              dartType: 'List<String>',
+            ),
+            _isp.ColumnDefinition(
+              name: 'interests',
+              columnType: _isp.ColumnType.json,
+              isNullable: false,
+              dartType: 'List<String>',
+            ),
+            _isp.ColumnDefinition(
+              name: 'createdAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+            _isp.ColumnDefinition(
+              name: 'updatedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+          ],
+          foreignKeys: [],
+          indexes: [
+            _isp.IndexDefinition(
+              indexName: 'student_profile_email_unique_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'email',
+                )
+              ],
+              type: 'btree',
+              isUnique: true,
+              isPrimary: false,
+            )
+          ],
+          managed: true,
         ),
-        ColumnDefinition(
-          name: 'title',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
+        _isp.TableDefinition(
+          name: 'study_partner_request',
+          dartName: 'StudyPartnerRequest',
+          schema: 'public',
+          module: 'campusloop',
+          columns: [
+            _isp.ColumnDefinition(
+              name: 'id',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int?',
+              columnDefault: 'serial',
+            ),
+            _isp.ColumnDefinition(
+              name: 'fromProfileId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'toProfileId',
+              columnType: _isp.ColumnType.bigint,
+              isNullable: false,
+              dartType: 'int',
+            ),
+            _isp.ColumnDefinition(
+              name: 'status',
+              columnType: _isp.ColumnType.text,
+              isNullable: false,
+              dartType: 'String',
+            ),
+            _isp.ColumnDefinition(
+              name: 'matchingSubjects',
+              columnType: _isp.ColumnType.json,
+              isNullable: false,
+              dartType: 'List<String>',
+            ),
+            _isp.ColumnDefinition(
+              name: 'message',
+              columnType: _isp.ColumnType.text,
+              isNullable: true,
+              dartType: 'String?',
+            ),
+            _isp.ColumnDefinition(
+              name: 'createdAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+            _isp.ColumnDefinition(
+              name: 'updatedAt',
+              columnType: _isp.ColumnType.timestampWithoutTimeZone,
+              isNullable: false,
+              dartType: 'DateTime',
+            ),
+          ],
+          foreignKeys: [],
+          indexes: [
+            _isp.IndexDefinition(
+              indexName: 'spr_from_to_unique_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'fromProfileId',
+                ),
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'toProfileId',
+                ),
+              ],
+              type: 'btree',
+              isUnique: true,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'spr_to_profile_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'toProfileId',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+            _isp.IndexDefinition(
+              indexName: 'spr_status_idx',
+              tableSpace: null,
+              elements: [
+                _isp.IndexElementDefinition(
+                  type: _isp.IndexElementDefinitionType.column,
+                  definition: 'status',
+                )
+              ],
+              type: 'btree',
+              isUnique: false,
+              isPrimary: false,
+            ),
+          ],
+          managed: true,
         ),
-        ColumnDefinition(
-          name: 'content',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'isPinned',
-          columnType: ColumnType.boolean,
-          isNullable: false,
-          dartType: 'bool',
-        ),
-        ColumnDefinition(
-          name: 'createdAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-        ColumnDefinition(
-          name: 'updatedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-      ],
-      foreignKeys: [],
-      indexes: [],
-    ),
-    TableDefinition(
-      name: 'campus_update',
-      dartName: 'CampusUpdate',
-      schema: 'public',
-      module: 'campusloop',
-      columns: [
-        ColumnDefinition(
-          name: 'id',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'title',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'content',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'category',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'authorProfileId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'priority',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'isPublished',
-          columnType: ColumnType.boolean,
-          isNullable: false,
-          dartType: 'bool',
-        ),
-        ColumnDefinition(
-          name: 'publishedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: true,
-          dartType: 'DateTime?',
-        ),
-        ColumnDefinition(
-          name: 'createdAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-        ColumnDefinition(
-          name: 'updatedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-      ],
-      foreignKeys: [],
-      indexes: [],
-    ),
-    TableDefinition(
-      name: 'study_partner_request',
-      dartName: 'StudyPartnerRequest',
-      schema: 'public',
-      module: 'campusloop',
-      columns: [
-        ColumnDefinition(
-          name: 'id',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int?',
-        ),
-        ColumnDefinition(
-          name: 'fromProfileId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'toProfileId',
-          columnType: ColumnType.bigint,
-          isNullable: false,
-          dartType: 'int',
-        ),
-        ColumnDefinition(
-          name: 'status',
-          columnType: ColumnType.text,
-          isNullable: false,
-          dartType: 'String',
-        ),
-        ColumnDefinition(
-          name: 'matchingSubjects',
-          columnType: ColumnType.json,
-          isNullable: false,
-          dartType: 'List<String>',
-        ),
-        ColumnDefinition(
-          name: 'message',
-          columnType: ColumnType.text,
-          isNullable: true,
-          dartType: 'String?',
-        ),
-        ColumnDefinition(
-          name: 'createdAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-        ColumnDefinition(
-          name: 'updatedAt',
-          columnType: ColumnType.timestampWithoutTimeZone,
-          isNullable: false,
-          dartType: 'DateTime',
-        ),
-      ],
-      foreignKeys: [],
-      indexes: [],
-    ),
-  ];
+        ..._iais.Protocol.targetTableDefinitions,
+        ..._iacs.Protocol.targetTableDefinitions,
+        ..._isp.Protocol.targetTableDefinitions,
+      ];
+
+  static String? getClassNameFromObjectJson(dynamic data) {
+    if (data is! Map) return null;
+    final className = data['__className__'] as String?;
+    return className;
+  }
 
   @override
-  T deserialize<T>(dynamic data, [Type? t]) {
+  T deserialize<T>(
+    dynamic data, [
+    Type? t,
+  ]) {
     t ??= T;
-    if (t == StudentProfile) {
-      return StudentProfile.fromJson(data as Map<String, dynamic>) as T;
+
+    final dataClassName = getClassNameFromObjectJson(data);
+    if (dataClassName != null && dataClassName != getClassNameForType(t)) {
+      try {
+        return deserializeByClassName({
+          'className': dataClassName,
+          'data': data,
+        });
+      } on _is.DeserializationClassNameNotFoundException catch (_) {
+        // If the className is not recognized (e.g., older client receiving
+        // data with a new subtype), fall back to deserializing without the
+        // className, using the expected type T.
+      }
     }
-    if (t == CampusEvent) {
-      return CampusEvent.fromJson(data as Map<String, dynamic>) as T;
+
+    if (t == _ieh998j0.CampusEvent) {
+      return _ieh998j0.CampusEvent.fromJson(data) as T;
     }
-    if (t == Community) {
-      return Community.fromJson(data as Map<String, dynamic>) as T;
+    if (t == _ikfbu05k.CampusUpdate) {
+      return _ikfbu05k.CampusUpdate.fromJson(data) as T;
     }
-    if (t == CommunityMembership) {
-      return CommunityMembership.fromJson(data as Map<String, dynamic>) as T;
+    if (t == _i2q09qvg.Community) {
+      return _i2q09qvg.Community.fromJson(data) as T;
     }
-    if (t == CommunityPost) {
-      return CommunityPost.fromJson(data as Map<String, dynamic>) as T;
+    if (t == _ir33x8kn.CommunityMembership) {
+      return _ir33x8kn.CommunityMembership.fromJson(data) as T;
     }
-    if (t == CampusUpdate) {
-      return CampusUpdate.fromJson(data as Map<String, dynamic>) as T;
+    if (t == _itvhuiq9.CommunityPost) {
+      return _itvhuiq9.CommunityPost.fromJson(data) as T;
     }
-    if (t == StudyPartnerRequest) {
-      return StudyPartnerRequest.fromJson(data as Map<String, dynamic>) as T;
+    if (t == _iovtxv26.StudentProfile) {
+      return _iovtxv26.StudentProfile.fromJson(data) as T;
     }
-    if (t == getType<StudentProfile?>()) {
-      return (data != null ? StudentProfile.fromJson(data as Map<String, dynamic>) : null) as T;
+    if (t == _idamz02b.StudyPartnerRequest) {
+      return _idamz02b.StudyPartnerRequest.fromJson(data) as T;
     }
-    if (t == getType<CampusEvent?>()) {
-      return (data != null ? CampusEvent.fromJson(data as Map<String, dynamic>) : null) as T;
+    if (t == _is.getType<_ieh998j0.CampusEvent?>()) {
+      return (data != null ? _ieh998j0.CampusEvent.fromJson(data) : null) as T;
     }
-    if (t == getType<Community?>()) {
-      return (data != null ? Community.fromJson(data as Map<String, dynamic>) : null) as T;
+    if (t == _is.getType<_ikfbu05k.CampusUpdate?>()) {
+      return (data != null ? _ikfbu05k.CampusUpdate.fromJson(data) : null) as T;
     }
-    if (t == getType<CampusUpdate?>()) {
-      return (data != null ? CampusUpdate.fromJson(data as Map<String, dynamic>) : null) as T;
+    if (t == _is.getType<_i2q09qvg.Community?>()) {
+      return (data != null ? _i2q09qvg.Community.fromJson(data) : null) as T;
     }
-    if (t == getType<List<StudentProfile>>()) {
-      return (data as List).map((e) => deserialize<StudentProfile>(e)).toList() as T;
+    if (t == _is.getType<_ir33x8kn.CommunityMembership?>()) {
+      return (data != null
+          ? _ir33x8kn.CommunityMembership.fromJson(data)
+          : null) as T;
     }
-    if (t == getType<List<CampusEvent>>()) {
-      return (data as List).map((e) => deserialize<CampusEvent>(e)).toList() as T;
+    if (t == _is.getType<_itvhuiq9.CommunityPost?>()) {
+      return (data != null ? _itvhuiq9.CommunityPost.fromJson(data) : null)
+          as T;
     }
-    if (t == getType<List<Community>>()) {
-      return (data as List).map((e) => deserialize<Community>(e)).toList() as T;
+    if (t == _is.getType<_iovtxv26.StudentProfile?>()) {
+      return (data != null ? _iovtxv26.StudentProfile.fromJson(data) : null)
+          as T;
     }
-    if (t == getType<List<CommunityMembership>>()) {
-      return (data as List).map((e) => deserialize<CommunityMembership>(e)).toList() as T;
+    if (t == _is.getType<_idamz02b.StudyPartnerRequest?>()) {
+      return (data != null
+          ? _idamz02b.StudyPartnerRequest.fromJson(data)
+          : null) as T;
     }
-    if (t == getType<List<CommunityPost>>()) {
-      return (data as List).map((e) => deserialize<CommunityPost>(e)).toList() as T;
+    if (t == List<String>) {
+      return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
-    if (t == getType<List<CampusUpdate>>()) {
-      return (data as List).map((e) => deserialize<CampusUpdate>(e)).toList() as T;
+    if (t == List<_igo1fi26.CampusUpdate>) {
+      return (data as List)
+          .map((e) => deserialize<_igo1fi26.CampusUpdate>(e))
+          .toList() as T;
     }
-    if (t == getType<List<StudyPartnerRequest>>()) {
-      return (data as List).map((e) => deserialize<StudyPartnerRequest>(e)).toList() as T;
+    if (t == List<String>) {
+      return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
-    if (t == getType<List<String>>()) {
-      return (data as List).map((e) => e as String).toList() as T;
+    if (t == List<_iojnz86y.Community>) {
+      return (data as List)
+          .map((e) => deserialize<_iojnz86y.Community>(e))
+          .toList() as T;
     }
+    if (t == List<_iwnejj4j.CommunityMembership>) {
+      return (data as List)
+          .map((e) => deserialize<_iwnejj4j.CommunityMembership>(e))
+          .toList() as T;
+    }
+    if (t == List<_iqq9fi66.CommunityPost>) {
+      return (data as List)
+          .map((e) => deserialize<_iqq9fi66.CommunityPost>(e))
+          .toList() as T;
+    }
+    if (t == List<_i1c7au20.CampusEvent>) {
+      return (data as List)
+          .map((e) => deserialize<_i1c7au20.CampusEvent>(e))
+          .toList() as T;
+    }
+    if (t == List<_icxrszas.StudentProfile>) {
+      return (data as List)
+          .map((e) => deserialize<_icxrszas.StudentProfile>(e))
+          .toList() as T;
+    }
+    if (t == List<_ieluzm8w.StudyPartnerRequest>) {
+      return (data as List)
+          .map((e) => deserialize<_ieluzm8w.StudyPartnerRequest>(e))
+          .toList() as T;
+    }
+    try {
+      return _iais.Protocol().deserialize<T>(data, t);
+    } on _is.DeserializationTypeNotFoundException catch (_) {}
+    try {
+      return _iacs.Protocol().deserialize<T>(data, t);
+    } on _is.DeserializationTypeNotFoundException catch (_) {}
+    try {
+      return _isp.Protocol().deserialize<T>(data, t);
+    } on _is.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
+  }
+
+  static String? getClassNameForType(Type type) {
+    return switch (type) {
+      _ieh998j0.CampusEvent => 'CampusEvent',
+      _ikfbu05k.CampusUpdate => 'CampusUpdate',
+      _i2q09qvg.Community => 'Community',
+      _ir33x8kn.CommunityMembership => 'CommunityMembership',
+      _itvhuiq9.CommunityPost => 'CommunityPost',
+      _iovtxv26.StudentProfile => 'StudentProfile',
+      _idamz02b.StudyPartnerRequest => 'StudyPartnerRequest',
+      _ => null
+    };
   }
 
   @override
   String? getClassNameForObject(Object? data) {
-    if (data is StudentProfile) return 'StudentProfile';
-    if (data is CampusEvent) return 'CampusEvent';
-    if (data is Community) return 'Community';
-    if (data is CommunityMembership) return 'CommunityMembership';
-    if (data is CommunityPost) return 'CommunityPost';
-    if (data is CampusUpdate) return 'CampusUpdate';
-    if (data is StudyPartnerRequest) return 'StudyPartnerRequest';
-    return super.getClassNameForObject(data);
-  }
+    String? className = super.getClassNameForObject(data);
+    if (className != null) return className;
 
-  @override
-  dynamic deserializeByClassName(Map<String, dynamic> data) {
-    var className = data['className'];
-    var dataObj = data['data'];
-    if (className == 'StudentProfile') return deserialize<StudentProfile>(dataObj);
-    if (className == 'CampusEvent') return deserialize<CampusEvent>(dataObj);
-    if (className == 'Community') return deserialize<Community>(dataObj);
-    if (className == 'CommunityMembership') return deserialize<CommunityMembership>(dataObj);
-    if (className == 'CommunityPost') return deserialize<CommunityPost>(dataObj);
-    if (className == 'CampusUpdate') return deserialize<CampusUpdate>(dataObj);
-    if (className == 'StudyPartnerRequest') return deserialize<StudyPartnerRequest>(dataObj);
-    return super.deserializeByClassName(data);
-  }
+    if (data is Map<String, dynamic> && data['__className__'] is String) {
+      return (data['__className__'] as String).replaceFirst('campusloop.', '');
+    }
 
-  @override
-  Table? getTableForType(Type t) {
-    if (t == StudentProfile) return StudentProfile.t;
-    if (t == CampusEvent) return CampusEvent.t;
-    if (t == Community) return Community.t;
-    if (t == CommunityMembership) return CommunityMembership.t;
-    if (t == CommunityPost) return CommunityPost.t;
-    if (t == CampusUpdate) return CampusUpdate.t;
-    if (t == StudyPartnerRequest) return StudyPartnerRequest.t;
+    switch (data) {
+      case _ieh998j0.CampusEvent():
+        return 'CampusEvent';
+      case _ikfbu05k.CampusUpdate():
+        return 'CampusUpdate';
+      case _i2q09qvg.Community():
+        return 'Community';
+      case _ir33x8kn.CommunityMembership():
+        return 'CommunityMembership';
+      case _itvhuiq9.CommunityPost():
+        return 'CommunityPost';
+      case _iovtxv26.StudentProfile():
+        return 'StudentProfile';
+      case _idamz02b.StudyPartnerRequest():
+        return 'StudyPartnerRequest';
+    }
+    className = _iais.Protocol().getClassNameForObject(data);
+    if (className != null) {
+      return className.contains('.')
+          ? className
+          : 'serverpod_auth_idp.$className';
+    }
+    className = _iacs.Protocol().getClassNameForObject(data);
+    if (className != null) {
+      return className.contains('.')
+          ? className
+          : 'serverpod_auth_core.$className';
+    }
+    className = _isp.Protocol().getClassNameForObject(data);
+    if (className != null) {
+      return className.contains('.') ? className : 'serverpod.$className';
+    }
     return null;
   }
 
   @override
-  List<TableDefinition> getTargetTableDefinitions() => targetTableDefinitions;
+  dynamic deserializeByClassName(Map<String, dynamic> data) {
+    var dataClassName = data['className'];
+    if (dataClassName is! String) {
+      return super.deserializeByClassName(data);
+    }
+    if (dataClassName == 'CampusEvent') {
+      return deserialize<_ieh998j0.CampusEvent>(data['data']);
+    }
+    if (dataClassName == 'CampusUpdate') {
+      return deserialize<_ikfbu05k.CampusUpdate>(data['data']);
+    }
+    if (dataClassName == 'Community') {
+      return deserialize<_i2q09qvg.Community>(data['data']);
+    }
+    if (dataClassName == 'CommunityMembership') {
+      return deserialize<_ir33x8kn.CommunityMembership>(data['data']);
+    }
+    if (dataClassName == 'CommunityPost') {
+      return deserialize<_itvhuiq9.CommunityPost>(data['data']);
+    }
+    if (dataClassName == 'StudentProfile') {
+      return deserialize<_iovtxv26.StudentProfile>(data['data']);
+    }
+    if (dataClassName == 'StudyPartnerRequest') {
+      return deserialize<_idamz02b.StudyPartnerRequest>(data['data']);
+    }
+    if (dataClassName.startsWith('serverpod_auth_idp.')) {
+      data['className'] = dataClassName.substring(19);
+      return _iais.Protocol().deserializeByClassName(data);
+    }
+    if (dataClassName.startsWith('serverpod_auth_core.')) {
+      data['className'] = dataClassName.substring(20);
+      return _iacs.Protocol().deserializeByClassName(data);
+    }
+    if (dataClassName.startsWith('serverpod.')) {
+      data['className'] = dataClassName.substring(10);
+      return _isp.Protocol().deserializeByClassName(data);
+    }
+    return super.deserializeByClassName(data);
+  }
+
+  void _registerHostProtocols() {
+    _iais.Protocol().registerHostProtocol('campusloop', this);
+    _iacs.Protocol().registerHostProtocol('campusloop', this);
+  }
+
+  @override
+  _is.Table? getTableForType(Type t) {
+    {
+      var table = _iais.Protocol().getTableForType(t);
+      if (table != null) {
+        return table;
+      }
+    }
+    {
+      var table = _iacs.Protocol().getTableForType(t);
+      if (table != null) {
+        return table;
+      }
+    }
+    {
+      var table = _isp.Protocol().getTableForType(t);
+      if (table != null) {
+        return table;
+      }
+    }
+    switch (t) {
+      case _ieh998j0.CampusEvent:
+        return _ieh998j0.CampusEvent.t;
+      case _ikfbu05k.CampusUpdate:
+        return _ikfbu05k.CampusUpdate.t;
+      case _i2q09qvg.Community:
+        return _i2q09qvg.Community.t;
+      case _ir33x8kn.CommunityMembership:
+        return _ir33x8kn.CommunityMembership.t;
+      case _itvhuiq9.CommunityPost:
+        return _itvhuiq9.CommunityPost.t;
+      case _iovtxv26.StudentProfile:
+        return _iovtxv26.StudentProfile.t;
+      case _idamz02b.StudyPartnerRequest:
+        return _idamz02b.StudyPartnerRequest.t;
+    }
+    return null;
+  }
+
+  @override
+  List<_isp.TableDefinition> getTargetTableDefinitions() =>
+      targetTableDefinitions;
+
+  @override
+  String getModuleName() => 'campusloop';
+
+  /// Maps any `Record`s known to this [Protocol] to their JSON representation
+  ///
+  /// Throws in case the record type is not known.
+  ///
+  /// This method will return `null` (only) for `null` inputs.
+  Map<String, dynamic>? mapRecordToJson(Record? record) {
+    if (record == null) {
+      return null;
+    }
+    try {
+      return _iais.Protocol().mapRecordToJson(record);
+    } catch (_) {}
+    try {
+      return _iacs.Protocol().mapRecordToJson(record);
+    } catch (_) {}
+    throw Exception('Unsupported record type ${record.runtimeType}');
+  }
 }

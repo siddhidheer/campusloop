@@ -1,353 +1,448 @@
-import 'package:serverpod/serverpod.dart';
-import '../endpoints/campus_update_endpoint.dart';
-import '../endpoints/community_endpoint.dart';
-import '../endpoints/community_post_endpoint.dart';
-import '../endpoints/event_endpoint.dart';
-import '../endpoints/profile_endpoint.dart';
-import '../endpoints/seed_endpoint.dart';
-import '../endpoints/study_partner_endpoint.dart';
-import 'protocol.dart';
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
 
-class Endpoints extends EndpointDispatch {
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:campusloop_server/src/generated/campus_event.dart' as _i1c7au20;
+import 'package:campusloop_server/src/generated/campus_update.dart'
+    as _igo1fi26;
+import 'package:campusloop_server/src/generated/community.dart' as _iojnz86y;
+import 'package:campusloop_server/src/generated/community_post.dart'
+    as _iqq9fi66;
+import 'package:campusloop_server/src/generated/student_profile.dart'
+    as _icxrszas;
+import 'package:serverpod/serverpod.dart' as _is;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _iacs;
+import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
+    as _iais;
+import '../endpoints/campus_update_endpoint.dart' as _icibaipm;
+import '../endpoints/community_endpoint.dart' as _ijv9oep2;
+import '../endpoints/community_post_endpoint.dart' as _iv2ugp3r;
+import '../endpoints/event_endpoint.dart' as _icw8lb6p;
+import '../endpoints/profile_endpoint.dart' as _i2cx2pww;
+import '../endpoints/seed_endpoint.dart' as _i8h1zywb;
+import '../endpoints/study_partner_endpoint.dart' as _ih25xh5o;
+
+class Endpoints extends _is.EndpointDispatch {
   @override
-  void initializeEndpoints(Server server) {
-    var endpoints = <String, Endpoint>{
-      'campusUpdate': CampusUpdateEndpoint()
+  void initializeEndpoints(_is.Server server) {
+    var endpoints = <String, _is.Endpoint>{
+      'campusUpdate': _icibaipm.CampusUpdateEndpoint()
         ..initialize(
           server,
           'campusUpdate',
           null,
         ),
-      'community': CommunityEndpoint()
+      'community': _ijv9oep2.CommunityEndpoint()
         ..initialize(
           server,
           'community',
           null,
         ),
-      'communityPost': CommunityPostEndpoint()
+      'communityPost': _iv2ugp3r.CommunityPostEndpoint()
         ..initialize(
           server,
           'communityPost',
           null,
         ),
-      'event': EventEndpoint()
+      'event': _icw8lb6p.EventEndpoint()
         ..initialize(
           server,
           'event',
           null,
         ),
-      'profile': ProfileEndpoint()
+      'profile': _i2cx2pww.ProfileEndpoint()
         ..initialize(
           server,
           'profile',
           null,
         ),
-      'seed': SeedEndpoint()
+      'seed': _i8h1zywb.SeedEndpoint()
         ..initialize(
           server,
           'seed',
           null,
         ),
-      'studyPartner': StudyPartnerEndpoint()
+      'studyPartner': _ih25xh5o.StudyPartnerEndpoint()
         ..initialize(
           server,
           'studyPartner',
           null,
         ),
     };
-
-    connectors['campusUpdate'] = EndpointConnector(
+    connectors['campusUpdate'] = _is.EndpointConnector(
       name: 'campusUpdate',
       endpoint: endpoints['campusUpdate']!,
       methodConnectors: {
-        'createUpdate': MethodConnector(
+        'createUpdate': _is.MethodConnector(
           name: 'createUpdate',
           params: {
-            'update': ParameterDescription(
+            'update': _is.ParameterDescription(
               name: 'update',
-              type: getType<CampusUpdate>(),
+              type: _is.getType<_igo1fi26.CampusUpdate>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['campusUpdate'] as CampusUpdateEndpoint)
-                  .createUpdate(session, params['update']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['campusUpdate'] as _icibaipm.CampusUpdateEndpoint)
+                  .createUpdate(
+            session,
+            params['update'],
+          ),
         ),
-        'getUpdate': MethodConnector(
+        'getUpdate': _is.MethodConnector(
           name: 'getUpdate',
           params: {
-            'updateId': ParameterDescription(
+            'updateId': _is.ParameterDescription(
               name: 'updateId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['campusUpdate'] as CampusUpdateEndpoint)
-                  .getUpdate(session, params['updateId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['campusUpdate'] as _icibaipm.CampusUpdateEndpoint)
+                  .getUpdate(
+            session,
+            params['updateId'],
+          ),
         ),
-        'listUpdates': MethodConnector(
+        'listUpdates': _is.MethodConnector(
           name: 'listUpdates',
           params: {
-            'category': ParameterDescription(
+            'category': _is.ParameterDescription(
               name: 'category',
-              type: getType<String?>(),
+              type: _is.getType<String?>(),
               nullable: true,
             ),
-            'limit': ParameterDescription(
+            'limit': _is.ParameterDescription(
               name: 'limit',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'offset': ParameterDescription(
+            'offset': _is.ParameterDescription(
               name: 'offset',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['campusUpdate'] as CampusUpdateEndpoint).listUpdates(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['campusUpdate'] as _icibaipm.CampusUpdateEndpoint)
+                  .listUpdates(
             session,
             category: params['category'],
             limit: params['limit'],
             offset: params['offset'],
           ),
         ),
-        'updateUpdate': MethodConnector(
+        'updateUpdate': _is.MethodConnector(
           name: 'updateUpdate',
           params: {
-            'update': ParameterDescription(
+            'update': _is.ParameterDescription(
               name: 'update',
-              type: getType<CampusUpdate>(),
+              type: _is.getType<_igo1fi26.CampusUpdate>(),
               nullable: false,
             ),
-            'requestingProfileId': ParameterDescription(
+            'requestingProfileId': _is.ParameterDescription(
               name: 'requestingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['campusUpdate'] as CampusUpdateEndpoint).updateUpdate(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['campusUpdate'] as _icibaipm.CampusUpdateEndpoint)
+                  .updateUpdate(
             session,
             params['update'],
             params['requestingProfileId'],
           ),
         ),
-        'deleteUpdate': MethodConnector(
+        'deleteUpdate': _is.MethodConnector(
           name: 'deleteUpdate',
           params: {
-            'updateId': ParameterDescription(
+            'updateId': _is.ParameterDescription(
               name: 'updateId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'requestingProfileId': ParameterDescription(
+            'requestingProfileId': _is.ParameterDescription(
               name: 'requestingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['campusUpdate'] as CampusUpdateEndpoint).deleteUpdate(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['campusUpdate'] as _icibaipm.CampusUpdateEndpoint)
+                  .deleteUpdate(
             session,
             params['updateId'],
             params['requestingProfileId'],
           ),
         ),
-        'getCategories': MethodConnector(
+        'getCategories': _is.MethodConnector(
           name: 'getCategories',
           params: {},
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['campusUpdate'] as CampusUpdateEndpoint)
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['campusUpdate'] as _icibaipm.CampusUpdateEndpoint)
                   .getCategories(session),
         ),
       },
     );
-
-    connectors['community'] = EndpointConnector(
+    connectors['community'] = _is.EndpointConnector(
       name: 'community',
       endpoint: endpoints['community']!,
       methodConnectors: {
-        'createCommunity': MethodConnector(
+        'createCommunity': _is.MethodConnector(
           name: 'createCommunity',
           params: {
-            'community': ParameterDescription(
+            'community': _is.ParameterDescription(
               name: 'community',
-              type: getType<Community>(),
+              type: _is.getType<_iojnz86y.Community>(),
               nullable: false,
             ),
-            'creatorProfileId': ParameterDescription(
+            'creatorProfileId': _is.ParameterDescription(
               name: 'creatorProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint).createCommunity(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .createCommunity(
             session,
             params['community'],
             params['creatorProfileId'],
           ),
         ),
-        'getCommunity': MethodConnector(
+        'getCommunity': _is.MethodConnector(
           name: 'getCommunity',
           params: {
-            'communityId': ParameterDescription(
+            'communityId': _is.ParameterDescription(
               name: 'communityId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint)
-                  .getCommunity(session, params['communityId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .getCommunity(
+            session,
+            params['communityId'],
+          ),
         ),
-        'listCommunities': MethodConnector(
+        'listCommunities': _is.MethodConnector(
           name: 'listCommunities',
           params: {
-            'category': ParameterDescription(
+            'category': _is.ParameterDescription(
               name: 'category',
-              type: getType<String?>(),
+              type: _is.getType<String?>(),
               nullable: true,
             ),
-            'limit': ParameterDescription(
+            'limit': _is.ParameterDescription(
               name: 'limit',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'offset': ParameterDescription(
+            'offset': _is.ParameterDescription(
               name: 'offset',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint).listCommunities(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .listCommunities(
             session,
             category: params['category'],
             limit: params['limit'],
             offset: params['offset'],
           ),
         ),
-        'searchCommunities': MethodConnector(
+        'searchCommunities': _is.MethodConnector(
           name: 'searchCommunities',
           params: {
-            'query': ParameterDescription(
+            'query': _is.ParameterDescription(
               name: 'query',
-              type: getType<String>(),
+              type: _is.getType<String>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint)
-                  .searchCommunities(session, params['query']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .searchCommunities(
+            session,
+            params['query'],
+          ),
         ),
-        'joinCommunity': MethodConnector(
+        'joinCommunity': _is.MethodConnector(
           name: 'joinCommunity',
           params: {
-            'communityId': ParameterDescription(
+            'communityId': _is.ParameterDescription(
               name: 'communityId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint).joinCommunity(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .joinCommunity(
             session,
             params['communityId'],
             params['profileId'],
           ),
         ),
-        'leaveCommunity': MethodConnector(
+        'leaveCommunity': _is.MethodConnector(
           name: 'leaveCommunity',
           params: {
-            'communityId': ParameterDescription(
+            'communityId': _is.ParameterDescription(
               name: 'communityId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint).leaveCommunity(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .leaveCommunity(
             session,
             params['communityId'],
             params['profileId'],
           ),
         ),
-        'getMembers': MethodConnector(
+        'getMembers': _is.MethodConnector(
           name: 'getMembers',
           params: {
-            'communityId': ParameterDescription(
+            'communityId': _is.ParameterDescription(
               name: 'communityId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint)
-                  .getMembers(session, params['communityId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .getMembers(
+            session,
+            params['communityId'],
+          ),
         ),
-        'getJoinedCommunities': MethodConnector(
+        'getJoinedCommunities': _is.MethodConnector(
           name: 'getJoinedCommunities',
           params: {
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint)
-                  .getJoinedCommunities(session, params['profileId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .getJoinedCommunities(
+            session,
+            params['profileId'],
+          ),
         ),
-        'isMember': MethodConnector(
+        'isMember': _is.MethodConnector(
           name: 'isMember',
           params: {
-            'communityId': ParameterDescription(
+            'communityId': _is.ParameterDescription(
               name: 'communityId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint).isMember(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint).isMember(
             session,
             params['communityId'],
             params['profileId'],
           ),
         ),
-        'deleteCommunity': MethodConnector(
+        'deleteCommunity': _is.MethodConnector(
           name: 'deleteCommunity',
           params: {
-            'communityId': ParameterDescription(
+            'communityId': _is.ParameterDescription(
               name: 'communityId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'requestingProfileId': ParameterDescription(
+            'requestingProfileId': _is.ParameterDescription(
               name: 'requestingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['community'] as CommunityEndpoint).deleteCommunity(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .deleteCommunity(
             session,
             params['communityId'],
             params['requestingProfileId'],
@@ -355,88 +450,105 @@ class Endpoints extends EndpointDispatch {
         ),
       },
     );
-
-    connectors['communityPost'] = EndpointConnector(
+    connectors['communityPost'] = _is.EndpointConnector(
       name: 'communityPost',
       endpoint: endpoints['communityPost']!,
       methodConnectors: {
-        'createPost': MethodConnector(
+        'createPost': _is.MethodConnector(
           name: 'createPost',
           params: {
-            'post': ParameterDescription(
+            'post': _is.ParameterDescription(
               name: 'post',
-              type: getType<CommunityPost>(),
+              type: _is.getType<_iqq9fi66.CommunityPost>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['communityPost'] as CommunityPostEndpoint)
-                  .createPost(session, params['post']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityPost'] as _iv2ugp3r.CommunityPostEndpoint)
+                  .createPost(
+            session,
+            params['post'],
+          ),
         ),
-        'listPosts': MethodConnector(
+        'listPosts': _is.MethodConnector(
           name: 'listPosts',
           params: {
-            'communityId': ParameterDescription(
+            'communityId': _is.ParameterDescription(
               name: 'communityId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'limit': ParameterDescription(
+            'limit': _is.ParameterDescription(
               name: 'limit',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'offset': ParameterDescription(
+            'offset': _is.ParameterDescription(
               name: 'offset',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['communityPost'] as CommunityPostEndpoint).listPosts(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityPost'] as _iv2ugp3r.CommunityPostEndpoint)
+                  .listPosts(
             session,
             params['communityId'],
             limit: params['limit'],
             offset: params['offset'],
           ),
         ),
-        'togglePin': MethodConnector(
+        'togglePin': _is.MethodConnector(
           name: 'togglePin',
           params: {
-            'postId': ParameterDescription(
+            'postId': _is.ParameterDescription(
               name: 'postId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'requestingProfileId': ParameterDescription(
+            'requestingProfileId': _is.ParameterDescription(
               name: 'requestingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['communityPost'] as CommunityPostEndpoint).togglePin(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityPost'] as _iv2ugp3r.CommunityPostEndpoint)
+                  .togglePin(
             session,
             params['postId'],
             params['requestingProfileId'],
           ),
         ),
-        'deletePost': MethodConnector(
+        'deletePost': _is.MethodConnector(
           name: 'deletePost',
           params: {
-            'postId': ParameterDescription(
+            'postId': _is.ParameterDescription(
               name: 'postId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'requestingProfileId': ParameterDescription(
+            'requestingProfileId': _is.ParameterDescription(
               name: 'requestingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['communityPost'] as CommunityPostEndpoint).deletePost(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityPost'] as _iv2ugp3r.CommunityPostEndpoint)
+                  .deletePost(
             session,
             params['postId'],
             params['requestingProfileId'],
@@ -444,368 +556,463 @@ class Endpoints extends EndpointDispatch {
         ),
       },
     );
-
-    connectors['event'] = EndpointConnector(
+    connectors['event'] = _is.EndpointConnector(
       name: 'event',
       endpoint: endpoints['event']!,
       methodConnectors: {
-        'createEvent': MethodConnector(
+        'createEvent': _is.MethodConnector(
           name: 'createEvent',
           params: {
-            'event': ParameterDescription(
+            'event': _is.ParameterDescription(
               name: 'event',
-              type: getType<CampusEvent>(),
+              type: _is.getType<_i1c7au20.CampusEvent>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint)
-                  .createEvent(session, params['event']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint).createEvent(
+            session,
+            params['event'],
+          ),
         ),
-        'getEvent': MethodConnector(
+        'getEvent': _is.MethodConnector(
           name: 'getEvent',
           params: {
-            'eventId': ParameterDescription(
+            'eventId': _is.ParameterDescription(
               name: 'eventId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint)
-                  .getEvent(session, params['eventId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint).getEvent(
+            session,
+            params['eventId'],
+          ),
         ),
-        'listEvents': MethodConnector(
+        'listEvents': _is.MethodConnector(
           name: 'listEvents',
           params: {
-            'category': ParameterDescription(
+            'category': _is.ParameterDescription(
               name: 'category',
-              type: getType<String?>(),
+              type: _is.getType<String?>(),
               nullable: true,
             ),
-            'limit': ParameterDescription(
+            'limit': _is.ParameterDescription(
               name: 'limit',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'offset': ParameterDescription(
+            'offset': _is.ParameterDescription(
               name: 'offset',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint).listEvents(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint).listEvents(
             session,
             category: params['category'],
             limit: params['limit'],
             offset: params['offset'],
           ),
         ),
-        'listAllEvents': MethodConnector(
+        'listAllEvents': _is.MethodConnector(
           name: 'listAllEvents',
           params: {
-            'limit': ParameterDescription(
+            'limit': _is.ParameterDescription(
               name: 'limit',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'offset': ParameterDescription(
+            'offset': _is.ParameterDescription(
               name: 'offset',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint).listAllEvents(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint).listAllEvents(
             session,
             limit: params['limit'],
             offset: params['offset'],
           ),
         ),
-        'searchEvents': MethodConnector(
+        'searchEvents': _is.MethodConnector(
           name: 'searchEvents',
           params: {
-            'query': ParameterDescription(
+            'query': _is.ParameterDescription(
               name: 'query',
-              type: getType<String>(),
+              type: _is.getType<String>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint)
-                  .searchEvents(session, params['query']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint).searchEvents(
+            session,
+            params['query'],
+          ),
         ),
-        'updateEvent': MethodConnector(
+        'updateEvent': _is.MethodConnector(
           name: 'updateEvent',
           params: {
-            'event': ParameterDescription(
+            'event': _is.ParameterDescription(
               name: 'event',
-              type: getType<CampusEvent>(),
+              type: _is.getType<_i1c7au20.CampusEvent>(),
               nullable: false,
             ),
-            'requestingProfileId': ParameterDescription(
+            'requestingProfileId': _is.ParameterDescription(
               name: 'requestingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint).updateEvent(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint).updateEvent(
             session,
             params['event'],
             params['requestingProfileId'],
           ),
         ),
-        'deleteEvent': MethodConnector(
+        'deleteEvent': _is.MethodConnector(
           name: 'deleteEvent',
           params: {
-            'eventId': ParameterDescription(
+            'eventId': _is.ParameterDescription(
               name: 'eventId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'requestingProfileId': ParameterDescription(
+            'requestingProfileId': _is.ParameterDescription(
               name: 'requestingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint).deleteEvent(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint).deleteEvent(
             session,
             params['eventId'],
             params['requestingProfileId'],
           ),
         ),
-        'getCategories': MethodConnector(
+        'getCategories': _is.MethodConnector(
           name: 'getCategories',
           params: {},
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['event'] as EventEndpoint).getCategories(session),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['event'] as _icw8lb6p.EventEndpoint)
+                  .getCategories(session),
         ),
       },
     );
-
-    connectors['profile'] = EndpointConnector(
+    connectors['profile'] = _is.EndpointConnector(
       name: 'profile',
       endpoint: endpoints['profile']!,
       methodConnectors: {
-        'createProfile': MethodConnector(
+        'createProfile': _is.MethodConnector(
           name: 'createProfile',
           params: {
-            'profile': ParameterDescription(
+            'profile': _is.ParameterDescription(
               name: 'profile',
-              type: getType<StudentProfile>(),
+              type: _is.getType<_icxrszas.StudentProfile>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['profile'] as ProfileEndpoint)
-                  .createProfile(session, params['profile']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['profile'] as _i2cx2pww.ProfileEndpoint).createProfile(
+            session,
+            params['profile'],
+          ),
         ),
-        'getProfile': MethodConnector(
+        'getProfile': _is.MethodConnector(
           name: 'getProfile',
           params: {
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['profile'] as ProfileEndpoint)
-                  .getProfile(session, params['profileId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['profile'] as _i2cx2pww.ProfileEndpoint).getProfile(
+            session,
+            params['profileId'],
+          ),
         ),
-        'getProfileByEmail': MethodConnector(
+        'getProfileByEmail': _is.MethodConnector(
           name: 'getProfileByEmail',
           params: {
-            'email': ParameterDescription(
+            'email': _is.ParameterDescription(
               name: 'email',
-              type: getType<String>(),
+              type: _is.getType<String>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['profile'] as ProfileEndpoint)
-                  .getProfileByEmail(session, params['email']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['profile'] as _i2cx2pww.ProfileEndpoint)
+                  .getProfileByEmail(
+            session,
+            params['email'],
+          ),
         ),
-        'updateProfile': MethodConnector(
+        'updateProfile': _is.MethodConnector(
           name: 'updateProfile',
           params: {
-            'profile': ParameterDescription(
+            'profile': _is.ParameterDescription(
               name: 'profile',
-              type: getType<StudentProfile>(),
+              type: _is.getType<_icxrszas.StudentProfile>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['profile'] as ProfileEndpoint)
-                  .updateProfile(session, params['profile']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['profile'] as _i2cx2pww.ProfileEndpoint).updateProfile(
+            session,
+            params['profile'],
+          ),
         ),
-        'listProfiles': MethodConnector(
+        'listProfiles': _is.MethodConnector(
           name: 'listProfiles',
           params: {
-            'limit': ParameterDescription(
+            'limit': _is.ParameterDescription(
               name: 'limit',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'offset': ParameterDescription(
+            'offset': _is.ParameterDescription(
               name: 'offset',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['profile'] as ProfileEndpoint).listProfiles(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['profile'] as _i2cx2pww.ProfileEndpoint).listProfiles(
             session,
             limit: params['limit'],
             offset: params['offset'],
           ),
         ),
-        'findStudyPartners': MethodConnector(
+        'findStudyPartners': _is.MethodConnector(
           name: 'findStudyPartners',
           params: {
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['profile'] as ProfileEndpoint)
-                  .findStudyPartners(session, params['profileId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['profile'] as _i2cx2pww.ProfileEndpoint)
+                  .findStudyPartners(
+            session,
+            params['profileId'],
+          ),
         ),
       },
     );
-
-    connectors['seed'] = EndpointConnector(
+    connectors['seed'] = _is.EndpointConnector(
       name: 'seed',
       endpoint: endpoints['seed']!,
       methodConnectors: {
-        'seedDevelopmentData': MethodConnector(
+        'seedDevelopmentData': _is.MethodConnector(
           name: 'seedDevelopmentData',
           params: {},
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['seed'] as SeedEndpoint).seedDevelopmentData(session),
-        ),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['seed'] as _i8h1zywb.SeedEndpoint)
+                  .seedDevelopmentData(session),
+        )
       },
     );
-
-    connectors['studyPartner'] = EndpointConnector(
+    connectors['studyPartner'] = _is.EndpointConnector(
       name: 'studyPartner',
       endpoint: endpoints['studyPartner']!,
       methodConnectors: {
-        'sendRequest': MethodConnector(
+        'sendRequest': _is.MethodConnector(
           name: 'sendRequest',
           params: {
-            'fromProfileId': ParameterDescription(
+            'fromProfileId': _is.ParameterDescription(
               name: 'fromProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'toProfileId': ParameterDescription(
+            'toProfileId': _is.ParameterDescription(
               name: 'toProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'message': ParameterDescription(
+            'message': _is.ParameterDescription(
               name: 'message',
-              type: getType<String?>(),
+              type: _is.getType<String?>(),
               nullable: true,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['studyPartner'] as StudyPartnerEndpoint).sendRequest(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['studyPartner'] as _ih25xh5o.StudyPartnerEndpoint)
+                  .sendRequest(
             session,
             params['fromProfileId'],
             params['toProfileId'],
             params['message'],
           ),
         ),
-        'acceptRequest': MethodConnector(
+        'acceptRequest': _is.MethodConnector(
           name: 'acceptRequest',
           params: {
-            'requestId': ParameterDescription(
+            'requestId': _is.ParameterDescription(
               name: 'requestId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'acceptingProfileId': ParameterDescription(
+            'acceptingProfileId': _is.ParameterDescription(
               name: 'acceptingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['studyPartner'] as StudyPartnerEndpoint).acceptRequest(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['studyPartner'] as _ih25xh5o.StudyPartnerEndpoint)
+                  .acceptRequest(
             session,
             params['requestId'],
             params['acceptingProfileId'],
           ),
         ),
-        'rejectRequest': MethodConnector(
+        'rejectRequest': _is.MethodConnector(
           name: 'rejectRequest',
           params: {
-            'requestId': ParameterDescription(
+            'requestId': _is.ParameterDescription(
               name: 'requestId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
-            'rejectingProfileId': ParameterDescription(
+            'rejectingProfileId': _is.ParameterDescription(
               name: 'rejectingProfileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
             ),
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['studyPartner'] as StudyPartnerEndpoint).rejectRequest(
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['studyPartner'] as _ih25xh5o.StudyPartnerEndpoint)
+                  .rejectRequest(
             session,
             params['requestId'],
             params['rejectingProfileId'],
           ),
         ),
-        'getIncomingRequests': MethodConnector(
+        'getIncomingRequests': _is.MethodConnector(
           name: 'getIncomingRequests',
           params: {
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['studyPartner'] as StudyPartnerEndpoint)
-                  .getIncomingRequests(session, params['profileId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['studyPartner'] as _ih25xh5o.StudyPartnerEndpoint)
+                  .getIncomingRequests(
+            session,
+            params['profileId'],
+          ),
         ),
-        'getOutgoingRequests': MethodConnector(
+        'getOutgoingRequests': _is.MethodConnector(
           name: 'getOutgoingRequests',
           params: {
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['studyPartner'] as StudyPartnerEndpoint)
-                  .getOutgoingRequests(session, params['profileId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['studyPartner'] as _ih25xh5o.StudyPartnerEndpoint)
+                  .getOutgoingRequests(
+            session,
+            params['profileId'],
+          ),
         ),
-        'getConnections': MethodConnector(
+        'getConnections': _is.MethodConnector(
           name: 'getConnections',
           params: {
-            'profileId': ParameterDescription(
+            'profileId': _is.ParameterDescription(
               name: 'profileId',
-              type: getType<int>(),
+              type: _is.getType<int>(),
               nullable: false,
-            ),
+            )
           },
-          call: (Session session, Map<String, dynamic> params) async =>
-              (endpoints['studyPartner'] as StudyPartnerEndpoint)
-                  .getConnections(session, params['profileId']),
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['studyPartner'] as _ih25xh5o.StudyPartnerEndpoint)
+                  .getConnections(
+            session,
+            params['profileId'],
+          ),
         ),
       },
     );
+    modules['serverpod_auth_idp'] = _iais.Endpoints()
+      ..initializeEndpoints(server);
+    modules['serverpod_auth_core'] = _iacs.Endpoints()
+      ..initializeEndpoints(server);
   }
 }

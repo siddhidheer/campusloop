@@ -75,8 +75,7 @@ class CommunityEndpoint extends Endpoint {
         where: (t) => t.category.equals(category),
         limit: limit,
         offset: offset,
-        orderBy: (t) => t.memberCount,
-        orderDescending: true,
+        orderBy: (t) => t.memberCount.desc(),
       );
     }
 
@@ -84,8 +83,7 @@ class CommunityEndpoint extends Endpoint {
       session,
       limit: limit,
       offset: offset,
-      orderBy: (t) => t.memberCount,
-      orderDescending: true,
+      orderBy: (t) => t.memberCount.desc(),
     );
   }
 

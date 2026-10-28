@@ -58,8 +58,7 @@ class CommunityPostEndpoint extends Endpoint {
       session,
       where: (t) =>
           t.communityId.equals(communityId) & t.isPinned.equals(true),
-      orderBy: (t) => t.createdAt,
-      orderDescending: true,
+      orderBy: (t) => t.createdAt.desc(),
     );
 
     // Then unpinned posts
@@ -69,8 +68,7 @@ class CommunityPostEndpoint extends Endpoint {
           t.communityId.equals(communityId) & t.isPinned.equals(false),
       limit: limit,
       offset: offset,
-      orderBy: (t) => t.createdAt,
-      orderDescending: true,
+      orderBy: (t) => t.createdAt.desc(),
     );
 
     return [...pinned, ...unpinned];
