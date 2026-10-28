@@ -16,7 +16,7 @@ class AppShell extends StatefulWidget {
       DiscoverScreen.switchToSubTab(subTab);
     }
     final state = context.findAncestorStateOfType<_AppShellState>();
-    state?.setTab(index);
+    state?.setTab(index, subTab: subTab);
   }
 
   @override
@@ -25,6 +25,8 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+  int _discoverSubTab = 0;
+  int _discoverKeyNonce = 0;
 
   @override
   void initState() {
@@ -36,26 +38,35 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
-  void setTab(int index) {
-    if (mounted && index >= 0 && index < _screens.length) {
-      setState(() => _currentIndex = index);
+  void setTab(int index, {int? subTab}) {
+    if (mounted && index >= 0 && index < 5) {
+      setState(() {
+        _currentIndex = index;
+        if (subTab != null) {
+          _discoverSubTab = subTab;
+          _discoverKeyNonce++;
+        }
+      });
     }
   }
 
-  final _screens = const [
-    HomeScreen(),
-    DiscoverScreen(),
-    CommunitiesScreen(),
-    UpdatesScreen(),
-    ProfileScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      const HomeScreen(),
+      DiscoverScreen(
+        key: ValueKey('discover_${_discoverSubTab}_$_discoverKeyNonce'),
+        initialSubTab: _discoverSubTab,
+      ),
+      const CommunitiesScreen(),
+      const UpdatesScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

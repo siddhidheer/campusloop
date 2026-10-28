@@ -6,7 +6,8 @@ import '../../widgets/common/campus_widgets.dart';
 
 /// Discover screen — Events and Study Partners.
 class DiscoverScreen extends StatefulWidget {
-  const DiscoverScreen({super.key});
+  final int initialSubTab;
+  const DiscoverScreen({super.key, this.initialSubTab = 0});
 
   /// 0 = Events, 1 = Study Partners
   static final ValueNotifier<int> requestedSubTab = ValueNotifier<int>(0);
@@ -30,7 +31,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   @override
   void initState() {
     super.initState();
-    _currentSubTab = DiscoverScreen.requestedSubTab.value.clamp(0, 1);
+    _currentSubTab = widget.initialSubTab.clamp(0, 1);
     _tabController = TabController(
       length: 2,
       vsync: this,
@@ -38,6 +39,20 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     );
     _tabController.addListener(_onTabControllerChanged);
     DiscoverScreen.trigger.addListener(_onSubTabTrigger);
+  }
+
+  @override
+  void didUpdateWidget(DiscoverScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSubTab != oldWidget.initialSubTab) {
+      final target = widget.initialSubTab.clamp(0, 1);
+      setState(() {
+        _currentSubTab = target;
+        if (_tabController.index != target) {
+          _tabController.index = target;
+        }
+      });
+    }
   }
 
   void _onTabControllerChanged() {
