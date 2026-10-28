@@ -66,3 +66,7 @@ build/
 
 # Exceptions to allow coverage
 !**/coverage/lcov.info
+
+# Android APK binaries
+*.apk
+
