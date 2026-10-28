@@ -8,6 +8,16 @@ import '../../widgets/common/campus_widgets.dart';
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
 
+  /// 0 = Events, 1 = Study Partners
+  static final ValueNotifier<int> requestedSubTab = ValueNotifier<int>(0);
+  static int _requestTriggerCount = 0;
+  static final ValueNotifier<int> trigger = ValueNotifier<int>(0);
+
+  static void switchToSubTab(int subTab) {
+    requestedSubTab.value = subTab.clamp(0, 1);
+    trigger.value = ++_requestTriggerCount;
+  }
+
   @override
   State<DiscoverScreen> createState() => _DiscoverScreenState();
 }
@@ -19,11 +29,35 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: DiscoverScreen.requestedSubTab.value.clamp(0, 1),
+    );
+    _tabController.addListener(_onTabControllerChanged);
+    DiscoverScreen.trigger.addListener(_onSubTabTrigger);
+  }
+
+  void _onTabControllerChanged() {
+    if (!_tabController.indexIsChanging) {
+      DiscoverScreen.requestedSubTab.value = _tabController.index;
+    }
+  }
+
+  void _onSubTabTrigger() {
+    if (!mounted) return;
+    final target = DiscoverScreen.requestedSubTab.value.clamp(0, 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _tabController.index != target) {
+        _tabController.animateTo(target);
+      }
+    });
   }
 
   @override
   void dispose() {
+    DiscoverScreen.trigger.removeListener(_onSubTabTrigger);
+    _tabController.removeListener(_onTabControllerChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -642,10 +676,20 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
   void initState() {
     super.initState();
     _loadData();
+    DiscoverScreen.trigger.addListener(_onDiscoverTrigger);
+  }
+
+  void _onDiscoverTrigger() {
+    if (DiscoverScreen.requestedSubTab.value == 1 && mounted) {
+      if (_selectedTab != 0) {
+        setState(() => _selectedTab = 0);
+      }
+    }
   }
 
   @override
   void dispose() {
+    DiscoverScreen.trigger.removeListener(_onDiscoverTrigger);
     _searchCtrl.dispose();
     super.dispose();
   }

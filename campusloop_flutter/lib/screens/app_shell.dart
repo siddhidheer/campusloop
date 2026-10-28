@@ -11,7 +11,10 @@ import 'profile/profile_screen.dart';
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
-  static void switchTab(BuildContext context, int index) {
+  static void switchTab(BuildContext context, int index, {int? subTab}) {
+    if (index == 1 && subTab != null) {
+      DiscoverScreen.switchToSubTab(subTab);
+    }
     final state = context.findAncestorStateOfType<_AppShellState>();
     state?.setTab(index);
   }
