@@ -248,7 +248,151 @@ class _LoginScreenState extends State<LoginScreen>
                           color: CampusTheme.textMuted.withValues(alpha: 0.9),
                         ),
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 20),
+
+                      // Vibrant Campus Hero Banner Image
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                            BoxShadow(
+                              color: CampusTheme.primaryOrange.withValues(alpha: 0.15),
+                              blurRadius: 24,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: Stack(
+                            children: [
+                              Image.asset(
+                                'assets/images/login_hero.jpg',
+                                height: 175,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, stack) => Image.asset(
+                                  'assets/images/campus_hero.jpg',
+                                  height: 175,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              // Cinematic dark gradient overlay
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.15),
+                                        Colors.black.withValues(alpha: 0.55),
+                                        CampusTheme.darkCard.withValues(alpha: 0.95),
+                                      ],
+                                      stops: const [0.0, 0.6, 1.0],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Border outline matching app aesthetics
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(22),
+                                    border: Border.all(
+                                      color: CampusTheme.primaryOrange.withValues(alpha: 0.35),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Top badge pill
+                              Positioned(
+                                top: 12,
+                                left: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.70),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: CampusTheme.primaryOrange.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.school_rounded,
+                                          color: CampusTheme.primaryOrange, size: 14),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Campus Community',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Bottom caption overlay
+                              Positioned(
+                                bottom: 12,
+                                left: 14,
+                                right: 14,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: CampusTheme.primaryOrange
+                                            .withValues(alpha: 0.25),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: CampusTheme.primaryOrange
+                                              .withValues(alpha: 0.5),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.hub_rounded,
+                                        color: CampusTheme.primaryOrange,
+                                        size: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text(
+                                        'Connect with classmates · Clubs · Events',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          shadows: [
+                                            Shadow(
+                                              blurRadius: 6,
+                                              color: Colors.black,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
                       // Complete Profile Registration & Sign In Card
                       Container(
