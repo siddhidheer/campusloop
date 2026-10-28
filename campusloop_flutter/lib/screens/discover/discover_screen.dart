@@ -25,21 +25,26 @@ class DiscoverScreen extends StatefulWidget {
 class _DiscoverScreenState extends State<DiscoverScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int _currentSubTab = 0;
 
   @override
   void initState() {
     super.initState();
+    _currentSubTab = DiscoverScreen.requestedSubTab.value.clamp(0, 1);
     _tabController = TabController(
       length: 2,
       vsync: this,
-      initialIndex: DiscoverScreen.requestedSubTab.value.clamp(0, 1),
+      initialIndex: _currentSubTab,
     );
     _tabController.addListener(_onTabControllerChanged);
     DiscoverScreen.trigger.addListener(_onSubTabTrigger);
   }
 
   void _onTabControllerChanged() {
-    if (!_tabController.indexIsChanging) {
+    if (!_tabController.indexIsChanging && _currentSubTab != _tabController.index) {
+      setState(() {
+        _currentSubTab = _tabController.index;
+      });
       DiscoverScreen.requestedSubTab.value = _tabController.index;
     }
   }
@@ -47,9 +52,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   void _onSubTabTrigger() {
     if (!mounted) return;
     final target = DiscoverScreen.requestedSubTab.value.clamp(0, 1);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _tabController.index != target) {
-        _tabController.animateTo(target);
+    setState(() {
+      _currentSubTab = target;
+      if (_tabController.index != target) {
+        _tabController.index = target;
       }
     });
   }
@@ -77,14 +83,19 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
+          onTap: (index) {
+            setState(() {
+              _currentSubTab = index;
+            });
+          },
           tabs: const [
             Tab(text: 'Events', icon: Icon(Icons.event, size: 20)),
             Tab(text: 'Study Partners', icon: Icon(Icons.handshake, size: 20)),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: IndexedStack(
+        index: _currentSubTab,
         children: const [
           _EventsTab(),
           _StudyPartnersTab(),

@@ -397,14 +397,14 @@ class _HomeScreenState extends State<HomeScreen> {
             Icons.event_available_rounded,
             'Events',
             CampusTheme.coral,
-            () => AppShell.switchTab(context, 1),
+            () => AppShell.switchTab(context, 1, subTab: 0),
           ),
           const SizedBox(width: 10),
           _buildQuickAction(
             Icons.handshake_rounded,
             'Partners',
             CampusTheme.softBlue,
-            () => AppShell.switchTab(context, 1),
+            () => AppShell.switchTab(context, 1, subTab: 1),
           ),
           const SizedBox(width: 10),
           _buildQuickAction(
@@ -479,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SectionHeader(
           title: 'Upcoming Events',
           actionLabel: 'See all →',
-          onAction: () => AppShell.switchTab(context, 1),
+          onAction: () => AppShell.switchTab(context, 1, subTab: 0),
         ),
         if (_upcomingEvents.isEmpty)
           const Padding(
@@ -614,7 +614,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SectionHeader(
           title: 'Connect by Interests & Peers',
           actionLabel: 'Find more →',
-          onAction: () => AppShell.switchTab(context, 1),
+          onAction: () => AppShell.switchTab(context, 1, subTab: 1),
         ),
         if (_suggestedPartners.isEmpty)
           Padding(
@@ -624,7 +624,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: 'No other students online',
               subtitle: 'Invite your classmates to CampusLoop to connect!',
               actionLabel: 'Explore Events',
-              onAction: () => AppShell.switchTab(context, 1),
+              onAction: () => AppShell.switchTab(context, 1, subTab: 0),
             ),
           )
         else
