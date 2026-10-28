@@ -665,9 +665,15 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
       _connections =
           await client.studyPartner.getConnections(currentProfileId!);
 
-      // Rank peers by shared interests & subjects
+      // Rank peers by shared interests & subjects, excluding corrupted/test names
       final others = _allProfiles
-          .where((p) => p.id != null && p.id != currentProfileId)
+          .where((p) =>
+              p.id != null &&
+              p.id != currentProfileId &&
+              !p.displayName.toLowerCase().contains('serverpod') &&
+              !p.displayName.toLowerCase().contains('statuscode') &&
+              !p.displayName.toLowerCase().contains('internal server error') &&
+              !p.displayName.toLowerCase().contains('exception'))
           .toList();
 
       others.sort((a, b) {
@@ -702,30 +708,70 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
   }
 
   Future<void> _sendRequest(int toProfileId) async {
+    // If there is already an incoming request from this person, accept it immediately!
+    StudyPartnerRequest? existingIncoming;
+    for (final r in _incoming) {
+      if (r.fromProfileId == toProfileId) {
+        existingIncoming = r;
+        break;
+      }
+    }
+
+    if (existingIncoming != null) {
+      await _acceptRequest(existingIncoming.id!);
+      return;
+    }
+
     try {
       await client.studyPartner.sendRequest(
         currentProfileId!,
         toProfileId,
         'Hi, let\'s connect on CampusLoop!',
       );
-      _loadData();
+      await _loadData();
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('🎉 Connection request sent!'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: CampusTheme.primaryOrange,
+            duration: Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
+      final msg = e.toString().toLowerCase();
+      await _loadData();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).clearSnackBars();
+        if (msg.contains('already connected')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Already connected with this peer!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: CampusTheme.mint,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        } else if (msg.contains('pending request already exists')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⏳ Request already pending between you two!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: CampusTheme.amberOrange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     }
   }
@@ -733,16 +779,28 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
   Future<void> _acceptRequest(int requestId) async {
     try {
       await client.studyPartner.acceptRequest(requestId, currentProfileId!);
-      _loadData();
+      await _loadData();
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connection accepted!')),
+          const SnackBar(
+            content: Text('🎉 Connection accepted! You are now study partners.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.mint,
+            duration: Duration(seconds: 3),
+          ),
         );
       }
     } catch (e) {
+      await _loadData();
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }
@@ -751,11 +809,28 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
   Future<void> _rejectRequest(int requestId) async {
     try {
       await client.studyPartner.rejectRequest(requestId, currentProfileId!);
-      _loadData();
-    } catch (e) {
+      await _loadData();
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          const SnackBar(
+            content: Text('Request declined'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.coral,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }
@@ -949,6 +1024,13 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                             c.fromProfileId == currentProfileId));
                     final isPending = _outgoing
                         .any((c) => c.toProfileId == partner.id);
+                    StudyPartnerRequest? incomingReq;
+                    for (final r in _incoming) {
+                      if (r.fromProfileId == partner.id) {
+                        incomingReq = r;
+                        break;
+                      }
+                    }
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
@@ -992,6 +1074,42 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: CampusTheme.textMuted,
+                                      ),
+                                    ),
+                                  if (incomingReq != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 3, bottom: 2),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: CampusTheme.mint
+                                              .withValues(alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          border: Border.all(
+                                            color: CampusTheme.mint
+                                                .withValues(alpha: 0.3),
+                                            width: 0.8,
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.mail_rounded,
+                                                size: 11,
+                                                color: CampusTheme.mint),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Sent you a request',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: CampusTheme.mint,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   const SizedBox(height: 6),
@@ -1060,6 +1178,75 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                                             color: CampusTheme.mint)),
                                   ],
                                 ),
+                              )
+                            else if (incomingReq != null)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Decline (Cross)
+                                  InkWell(
+                                    onTap: () => _rejectRequest(incomingReq!.id!),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(7),
+                                      decoration: BoxDecoration(
+                                        color: CampusTheme.coral
+                                            .withValues(alpha: 0.16),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: CampusTheme.coral
+                                              .withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        size: 18,
+                                        color: CampusTheme.coral,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  // Accept (Tick)
+                                  InkWell(
+                                    onTap: () => _acceptRequest(incomingReq!.id!),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 7),
+                                      decoration: BoxDecoration(
+                                        color: CampusTheme.mint,
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: CampusTheme.mint
+                                                .withValues(alpha: 0.35),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.check_rounded,
+                                            size: 18,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Accept',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               )
                             else if (isPending)
                               Container(
