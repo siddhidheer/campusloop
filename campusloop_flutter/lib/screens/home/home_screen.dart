@@ -7,8 +7,8 @@ import '../app_shell.dart';
 
 /// Home dashboard — vibrant, personalized CampusLoop landing page.
 ///
-/// Features the orange infinity brand logo, responsive non-overflowing welcome card,
-/// interactive quick action tiles, and fully working arrows and tap targets.
+/// Features the orange infinity brand logo, cohesive dark hello card matching the whole app,
+/// interactive quick action tiles, and rich peer discovery by shared interests.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -61,14 +61,49 @@ class _HomeScreenState extends State<HomeScreen> {
       _communities = results[2] as List<Community>;
       _latestUpdates = results[3] as List<CampusUpdate>;
 
-      // Load study partners if profile exists
-      if (_profile != null && _profile!.studySubjects.isNotEmpty) {
-        _suggestedPartners = await client.profile.findStudyPartners(
-          currentProfileId!,
-        );
-        if (_suggestedPartners.length > 4) {
-          _suggestedPartners = _suggestedPartners.sublist(0, 4);
-        }
+      // Load peers matching shared interests, subjects, or department
+      try {
+        final allProfiles =
+            await client.profile.listProfiles(limit: 30, offset: 0);
+        final otherProfiles = allProfiles
+            .where((p) => p.id != null && p.id != currentProfileId)
+            .toList();
+
+        otherProfiles.sort((a, b) {
+          final aSharedInterests = a.interests
+              .where((i) => _profile?.interests.contains(i) ?? false)
+              .length;
+          final bSharedInterests = b.interests
+              .where((i) => _profile?.interests.contains(i) ?? false)
+              .length;
+
+          final aSharedSubjects = a.studySubjects
+              .where((s) => _profile?.studySubjects.contains(s) ?? false)
+              .length;
+          final bSharedSubjects = b.studySubjects
+              .where((s) => _profile?.studySubjects.contains(s) ?? false)
+              .length;
+
+          final aSameDept =
+              (a.department != null && a.department == _profile?.department)
+                  ? 1
+                  : 0;
+          final bSameDept =
+              (b.department != null && b.department == _profile?.department)
+                  ? 1
+                  : 0;
+
+          final aScore =
+              (aSharedInterests * 4) + (aSharedSubjects * 2) + aSameDept;
+          final bScore =
+              (bSharedInterests * 4) + (bSharedSubjects * 2) + bSameDept;
+
+          return bScore.compareTo(aScore);
+        });
+
+        _suggestedPartners = otherProfiles.take(6).toList();
+      } catch (_) {
+        _suggestedPartners = [];
       }
 
       if (mounted) setState(() => _isLoading = false);
@@ -78,6 +113,35 @@ class _HomeScreenState extends State<HomeScreen> {
           _error = e.toString();
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _sendStudyRequest(StudentProfile partner) async {
+    if (currentProfileId == null || partner.id == null) return;
+    try {
+      await client.studyPartner.sendRequest(
+        currentProfileId!,
+        partner.id!,
+        'Hi ${partner.displayName}, let\'s connect on CampusLoop!',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎉 Connection request sent to ${partner.displayName}!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.primaryOrange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -146,6 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ── Cohesive Welcome Card Matching the Rest of the App ──
   Widget _buildWelcomeSection() {
     final name = _profile?.displayName ?? 'Student';
     final firstName = name.split(' ').first;
@@ -161,21 +226,22 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFF6A00),
-            Color(0xFFFF3D00),
-            Color(0xFF1E293B),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: CampusTheme.darkCard,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: CampusTheme.primaryOrange.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF6A00).withValues(alpha: 0.35),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: CampusTheme.primaryOrange.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -199,20 +265,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     if (dept != null && dept.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                            horizontal: 10, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
+                          color: CampusTheme.primaryOrange.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: CampusTheme.primaryOrange.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Text(
                           dept,
                           style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: CampusTheme.primaryOrange,
                           ),
                         ),
                       ),
@@ -223,28 +292,31 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: CampusTheme.primaryOrange.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: CampusTheme.primaryOrange.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: const Icon(
                   Icons.all_inclusive_rounded,
-                  color: Colors.white,
+                  color: CampusTheme.primaryOrange,
                   size: 20,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 10),
+          const Text(
             'Your Campus. Your Community. One Loop.',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Colors.white.withValues(alpha: 0.9),
+              color: CampusTheme.textMuted,
             ),
           ),
           const SizedBox(height: 18),
-          // Responsive stat chips that never overflow or fall off screen
+          // Responsive stat chips that match the dark card aesthetic
           Row(
             children: [
               Expanded(
@@ -286,12 +358,12 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.18),
+          color: CampusTheme.darkCardLight,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.25),
+            color: CampusTheme.divider.withValues(alpha: 0.4),
           ),
         ),
         child: FittedBox(
@@ -299,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 15, color: Colors.white),
+              Icon(icon, size: 15, color: CampusTheme.primaryOrange),
               const SizedBox(width: 5),
               Text(
                 '$count $label',
@@ -535,26 +607,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ── Connect by Interests & Study Partners ──
   Widget _buildStudyPartners() {
     return Column(
       children: [
         SectionHeader(
-          title: 'Study Partners',
+          title: 'Connect by Interests & Peers',
           actionLabel: 'Find more →',
           onAction: () => AppShell.switchTab(context, 1),
         ),
         if (_suggestedPartners.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: CampusEmptyState(
-              icon: Icons.handshake_outlined,
-              title: 'No matches yet',
-              subtitle: 'Add study subjects to your profile to find partners',
+              icon: Icons.people_outline_rounded,
+              title: 'No other students online',
+              subtitle: 'Invite your classmates to CampusLoop to connect!',
+              actionLabel: 'Explore Events',
+              onAction: () => AppShell.switchTab(context, 1),
             ),
           )
         else
           SizedBox(
-            height: 135,
+            height: 168,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -568,13 +643,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPartnerCard(StudentProfile partner) {
-    final matchCount = _profile?.studySubjects
-            .where((s) => partner.studySubjects.contains(s))
-            .length ??
-        0;
+    final sharedInterests = partner.interests
+        .where((i) => _profile?.interests.contains(i) ?? false)
+        .toList();
+    final sharedSubjects = partner.studySubjects
+        .where((s) => _profile?.studySubjects.contains(s) ?? false)
+        .toList();
+
+    String matchLabel;
+    if (sharedInterests.isNotEmpty) {
+      matchLabel = '🔥 ${sharedInterests.first}';
+    } else if (sharedSubjects.isNotEmpty) {
+      matchLabel = '📚 ${sharedSubjects.first}';
+    } else if (partner.interests.isNotEmpty) {
+      matchLabel = '✨ ${partner.interests.first}';
+    } else {
+      matchLabel = partner.department ?? 'Campus Peer';
+    }
 
     return Container(
-      width: 155,
+      width: 165,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       child: Card(
         child: InkWell(
@@ -586,20 +674,20 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircleAvatar(
-                  radius: 22,
+                  radius: 20,
                   backgroundColor: CampusTheme.primaryOrange.withValues(alpha: 0.2),
                   child: Text(
                     partner.displayName.isNotEmpty
                         ? partner.displayName[0].toUpperCase()
                         : 'S',
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: CampusTheme.primaryOrange,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   partner.displayName,
                   maxLines: 1,
@@ -611,12 +699,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '$matchCount shared ${matchCount == 1 ? 'subject' : 'subjects'}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: CampusTheme.mint,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: CampusTheme.primaryOrange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    matchLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: CampusTheme.primaryOrange,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 28,
+                  child: ElevatedButton(
+                    onPressed: () => _sendStudyRequest(partner),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      backgroundColor: CampusTheme.primaryOrange,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Connect',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -932,7 +1053,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (partner.department != null) ...[
               const SizedBox(height: 4),
               Text(
-                '${partner.department} · ${partner.year ?? 'Student'}',
+                '${partner.department} · Year ${partner.year ?? 1}',
                 style: const TextStyle(
                   fontSize: 14,
                   color: CampusTheme.textMuted,
@@ -941,37 +1062,74 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
             const SizedBox(height: 16),
             Text(
-              partner.bio ?? 'CampusLoop student looking for study partners.',
+              partner.bio ?? 'CampusLoop student looking to connect with peers.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, color: Colors.white70),
             ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: partner.studySubjects
-                  .map((s) => Chip(
-                        label: Text(s),
-                        backgroundColor: CampusTheme.darkCardLight,
-                      ))
-                  .toList(),
-            ),
+            if (partner.interests.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Interests',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: CampusTheme.textMuted,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: partner.interests
+                    .map((i) => Chip(
+                          label: Text(i),
+                          backgroundColor:
+                              CampusTheme.primaryOrange.withValues(alpha: 0.15),
+                          labelStyle: const TextStyle(
+                              color: CampusTheme.primaryOrange,
+                              fontWeight: FontWeight.w600),
+                        ))
+                    .toList(),
+              ),
+            ],
+            if (partner.studySubjects.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Study Subjects',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: CampusTheme.textMuted,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: partner.studySubjects
+                    .map((s) => Chip(
+                          label: Text(s),
+                          backgroundColor: CampusTheme.darkCardLight,
+                        ))
+                    .toList(),
+              ),
+            ],
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('💬 Study invite sent to ${partner.displayName}!'),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: CampusTheme.primaryOrange,
-                    ),
-                  );
+                  _sendStudyRequest(partner);
                 },
-                icon: const Icon(Icons.send_rounded),
-                label: const Text('Connect & Study Together'),
+                icon: const Icon(Icons.person_add_rounded),
+                label: Text('Connect with ${partner.displayName}'),
               ),
             ),
           ],

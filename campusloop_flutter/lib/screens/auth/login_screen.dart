@@ -5,10 +5,10 @@ import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../app_shell.dart';
 
-/// Modern, visually stunning Login & Onboarding Screen for CampusLoop.
+/// Comprehensive, modern Student Onboarding & Login Screen.
 ///
-/// Features the orange infinity brand, student registration with Name, Department,
-/// and Campus Email, zero pre-registered user clutter, and responsive layout.
+/// Includes all profile fields: Display Name, Campus Email, Department,
+/// Year of Study, Bio, Study Subjects, and Interests with quick-toggle chips.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -24,10 +24,22 @@ class _LoginScreenState extends State<LoginScreen>
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _deptController = TextEditingController();
   final _emailController = TextEditingController();
-  bool _isLoading = false;
-  String? _error;
+  final _deptController =
+      TextEditingController(text: 'Computer Science & Engineering');
+  final _bioController = TextEditingController(
+      text: 'CampusLoop student passionate about technology and collaboration.');
+  int _selectedYear = 1;
+
+  final Set<String> _selectedSubjects = {
+    'Computer Science',
+    'AI & Data Science',
+  };
+  final Set<String> _selectedInterests = {
+    'Coding',
+    'Hackathons',
+    'AI',
+  };
 
   final List<String> _commonDepartments = const [
     'Computer Science & Engineering',
@@ -39,6 +51,37 @@ class _LoginScreenState extends State<LoginScreen>
     'Business Administration',
     'Design & Architecture',
   ];
+
+  final List<String> _suggestedSubjects = const [
+    'Computer Science',
+    'AI & Data Science',
+    'Data Structures',
+    'Web Development',
+    'Cloud Computing',
+    'Algorithms',
+    'Mobile Dev (Flutter)',
+    'Cybersecurity',
+    'Calculus',
+  ];
+
+  final List<String> _suggestedInterests = const [
+    'Coding',
+    'Hackathons',
+    'AI',
+    'Robotics',
+    'Gaming',
+    'Open Source',
+    'Startups',
+    'Music',
+    'Photography',
+    'Design',
+  ];
+
+  final _customSubjectCtrl = TextEditingController();
+  final _customInterestCtrl = TextEditingController();
+
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void initState() {
@@ -52,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen>
       curve: Curves.easeOut,
     );
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.06),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animController,
@@ -65,8 +108,11 @@ class _LoginScreenState extends State<LoginScreen>
   void dispose() {
     _animController.dispose();
     _nameController.dispose();
-    _deptController.dispose();
     _emailController.dispose();
+    _deptController.dispose();
+    _bioController.dispose();
+    _customSubjectCtrl.dispose();
+    _customInterestCtrl.dispose();
     super.dispose();
   }
 
@@ -74,8 +120,9 @@ class _LoginScreenState extends State<LoginScreen>
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
-    final dept = _deptController.text.trim();
     final email = _emailController.text.trim().toLowerCase();
+    final dept = _deptController.text.trim();
+    final bio = _bioController.text.trim();
 
     setState(() {
       _isLoading = true;
@@ -92,20 +139,31 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       if (profile != null) {
-        // Existing student: update name/dept if entered differently
-        currentProfileId = profile.id;
+        // Update existing student with all new onboarding fields
+        profile
+          ..displayName = name
+          ..department = dept.isNotEmpty ? dept : null
+          ..year = _selectedYear
+          ..bio = bio.isNotEmpty ? bio : profile.bio
+          ..studySubjects = _selectedSubjects.toList()
+          ..interests = _selectedInterests.toList();
+
+        final updated = await client.profile.updateProfile(profile);
+        currentProfileId = updated.id ?? profile.id;
       } else {
-        // New student: create profile
+        // Create new profile with all fields
         final now = DateTime.now();
         final newProfile = await client.profile.createProfile(
           StudentProfile(
             displayName: name,
             email: email,
             department: dept.isNotEmpty ? dept : 'General Studies',
-            year: 1,
-            bio: 'CampusLoop student from $dept',
-            studySubjects: ['Computer Science', 'General Engineering'],
-            interests: ['Coding', 'Hackathons', 'Campus Life'],
+            year: _selectedYear,
+            bio: bio.isNotEmpty
+                ? bio
+                : 'CampusLoop student from $dept',
+            studySubjects: _selectedSubjects.toList(),
+            interests: _selectedInterests.toList(),
             createdAt: now,
             updatedAt: now,
           ),
@@ -119,8 +177,7 @@ class _LoginScreenState extends State<LoginScreen>
         );
       }
     } catch (e) {
-      // Fallback: If network error or cloud glitch, still allow student entry
-      // so user is NEVER blocked from using their app
+      // Fallback: If network glitch, still allow student entry
       setState(() {
         _isLoading = false;
         _error = null;
@@ -128,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Welcome $name! Entering offline-ready mode...'),
+            content: Text('Welcome $name! Entering campus...'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: CampusTheme.primaryOrange,
           ),
@@ -150,22 +207,20 @@ class _LoginScreenState extends State<LoginScreen>
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
                 position: _slideAnim,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: isWide ? 480 : double.infinity,
+                    maxWidth: isWide ? 520 : double.infinity,
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Orange Infinity App Logo Header
+                      // Header Logo & Branding
                       const OrangeInfinityLogo(size: 68),
                       const SizedBox(height: 16),
-
                       RichText(
                         text: const TextSpan(
                           style: TextStyle(
@@ -195,18 +250,18 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 28),
 
-                      // Sign In & Registration Card
+                      // Complete Profile Registration & Sign In Card
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: CampusTheme.darkCard,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: CampusTheme.primaryOrange.withValues(alpha: 0.25),
+                            color: CampusTheme.primaryOrange.withValues(alpha: 0.28),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: CampusTheme.primaryOrange.withValues(alpha: 0.12),
+                              color: CampusTheme.primaryOrange.withValues(alpha: 0.10),
                               blurRadius: 30,
                               offset: const Offset(0, 10),
                             ),
@@ -229,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                   const SizedBox(width: 8),
                                   const Text(
-                                    'Student Portal Sign In',
+                                    'Student Profile & Sign In',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
@@ -240,7 +295,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 6),
                               const Text(
-                                'Enter your details below to join or access your student dashboard.',
+                                'Fill in your profile details to unlock personalized matches, clubs, and peers.',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: CampusTheme.textMuted,
@@ -276,16 +331,8 @@ class _LoginScreenState extends State<LoginScreen>
                                 const SizedBox(height: 16),
                               ],
 
-                              // 1. Full Name
-                              const Text(
-                                'Full Name',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: CampusTheme.textLight,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
+                              // 1. Display Name
+                              _buildLabel('Display Name'),
                               TextFormField(
                                 controller: _nameController,
                                 style: const TextStyle(color: Colors.white),
@@ -304,56 +351,8 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 16),
 
-                              // 2. Department
-                              const Text(
-                                'Department / Major',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: CampusTheme.textLight,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              TextFormField(
-                                controller: _deptController,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  hintText: 'e.g. Computer Science',
-                                  prefixIcon: const Icon(
-                                      Icons.school_rounded,
-                                      color: CampusTheme.softBlue),
-                                  suffixIcon: PopupMenuButton<String>(
-                                    icon: const Icon(Icons.arrow_drop_down_rounded,
-                                        color: CampusTheme.textMuted),
-                                    onSelected: (dept) =>
-                                        _deptController.text = dept,
-                                    itemBuilder: (ctx) => _commonDepartments
-                                        .map((d) => PopupMenuItem(
-                                              value: d,
-                                              child: Text(d),
-                                            ))
-                                        .toList(),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your department';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // 3. College Email
-                              const Text(
-                                'Campus Email',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: CampusTheme.textLight,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
+                              // 2. Campus Email
+                              _buildLabel('Campus Email'),
                               TextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
@@ -361,31 +360,262 @@ class _LoginScreenState extends State<LoginScreen>
                                 decoration: const InputDecoration(
                                   hintText: 'e.g. siddhi@campus.edu',
                                   prefixIcon: Icon(Icons.alternate_email_rounded,
-                                      color: CampusTheme.mint),
+                                      color: CampusTheme.softBlue),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
                                     return 'Please enter your email address';
                                   }
                                   if (!value.contains('@')) {
-                                    return 'Please enter a valid email';
+                                    return 'Please enter a valid email address';
                                   }
                                   return null;
                                 },
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
+
+                              // 3. Department & Year Row
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Department
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel('Department'),
+                                        TextFormField(
+                                          controller: _deptController,
+                                          style: const TextStyle(
+                                              color: Colors.white, fontSize: 13),
+                                          decoration: InputDecoration(
+                                            hintText: 'Department',
+                                            prefixIcon: const Icon(
+                                                Icons.school_rounded,
+                                                color: CampusTheme.mint),
+                                            suffixIcon: PopupMenuButton<String>(
+                                              icon: const Icon(
+                                                  Icons.arrow_drop_down_rounded,
+                                                  color: CampusTheme.textMuted),
+                                              onSelected: (dept) =>
+                                                  _deptController.text = dept,
+                                              itemBuilder: (ctx) =>
+                                                  _commonDepartments
+                                                      .map((d) => PopupMenuItem(
+                                                            value: d,
+                                                            child: Text(d),
+                                                          ))
+                                                      .toList(),
+                                            ),
+                                          ),
+                                          validator: (v) => (v == null || v.trim().isEmpty)
+                                              ? 'Required'
+                                              : null,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  // Year
+                                  Expanded(
+                                    flex: 2,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel('Year'),
+                                        DropdownButtonFormField<int>(
+                                          value: _selectedYear,
+                                          dropdownColor: CampusTheme.darkCard,
+                                          style: const TextStyle(color: Colors.white),
+                                          decoration: const InputDecoration(
+                                            contentPadding: EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 14),
+                                          ),
+                                          items: [1, 2, 3, 4, 5]
+                                              .map((y) => DropdownMenuItem(
+                                                    value: y,
+                                                    child: Text('Year $y'),
+                                                  ))
+                                              .toList(),
+                                          onChanged: (y) {
+                                            if (y != null) {
+                                              setState(() => _selectedYear = y);
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              // 4. Bio
+                              _buildLabel('Bio (About You)'),
+                              TextFormField(
+                                controller: _bioController,
+                                maxLines: 2,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      'A short intro about your projects, skills, or goals...',
+                                  prefixIcon: Icon(Icons.info_outline_rounded,
+                                      color: CampusTheme.lavender),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+
+                              // 5. Study Subjects
+                              _buildLabel('Study Subjects (Tap to select or add)'),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: _suggestedSubjects.map((s) {
+                                  final isSelected =
+                                      _selectedSubjects.contains(s);
+                                  return FilterChip(
+                                    label: Text(s),
+                                    selected: isSelected,
+                                    selectedColor: CampusTheme.primaryOrange,
+                                    checkmarkColor: Colors.white,
+                                    backgroundColor: CampusTheme.darkCardLight,
+                                    labelStyle: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : CampusTheme.textMuted,
+                                    ),
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        if (selected) {
+                                          _selectedSubjects.add(s);
+                                        } else {
+                                          _selectedSubjects.remove(s);
+                                        }
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _customSubjectCtrl,
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 13),
+                                      decoration: const InputDecoration(
+                                        hintText: 'Add custom subject...',
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 10),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton.filled(
+                                    onPressed: () {
+                                      final text =
+                                          _customSubjectCtrl.text.trim();
+                                      if (text.isNotEmpty) {
+                                        setState(() {
+                                          _selectedSubjects.add(text);
+                                          _customSubjectCtrl.clear();
+                                        });
+                                      }
+                                    },
+                                    icon: const Icon(Icons.add, size: 18),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: CampusTheme.primaryOrange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 18),
+
+                              // 6. Interests & Hobbies
+                              _buildLabel('Interests & Passions (Connect with peers)'),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: _suggestedInterests.map((interest) {
+                                  final isSelected =
+                                      _selectedInterests.contains(interest);
+                                  return FilterChip(
+                                    label: Text(interest),
+                                    selected: isSelected,
+                                    selectedColor: CampusTheme.coral,
+                                    checkmarkColor: Colors.white,
+                                    backgroundColor: CampusTheme.darkCardLight,
+                                    labelStyle: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : CampusTheme.textMuted,
+                                    ),
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        if (selected) {
+                                          _selectedInterests.add(interest);
+                                        } else {
+                                          _selectedInterests.remove(interest);
+                                        }
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _customInterestCtrl,
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 13),
+                                      decoration: const InputDecoration(
+                                        hintText: 'Add custom interest...',
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 10),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton.filled(
+                                    onPressed: () {
+                                      final text =
+                                          _customInterestCtrl.text.trim();
+                                      if (text.isNotEmpty) {
+                                        setState(() {
+                                          _selectedInterests.add(text);
+                                          _customInterestCtrl.clear();
+                                        });
+                                      }
+                                    },
+                                    icon: const Icon(Icons.add, size: 18),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: CampusTheme.coral,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 28),
 
                               // Submit Button
                               SizedBox(
                                 width: double.infinity,
-                                height: 52,
+                                height: 54,
                                 child: ElevatedButton(
-                                  onPressed: _isLoading ? null : _handleEnterCampus,
+                                  onPressed:
+                                      _isLoading ? null : _handleEnterCampus,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: CampusTheme.primaryOrange,
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
                                     elevation: 4,
                                     shadowColor: CampusTheme.primaryOrange
@@ -467,6 +697,20 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: CampusTheme.textLight,
         ),
       ),
     );

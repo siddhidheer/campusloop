@@ -611,6 +611,7 @@ class _StudyPartnersTab extends StatefulWidget {
 }
 
 class _StudyPartnersTabState extends State<_StudyPartnersTab> {
+  List<StudentProfile> _allProfiles = [];
   List<StudentProfile> _matches = [];
   List<StudyPartnerRequest> _incoming = [];
   List<StudyPartnerRequest> _outgoing = [];
@@ -618,12 +619,35 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
   StudentProfile? _myProfile;
   bool _isLoading = true;
   String? _error;
-  int _selectedTab = 0; // 0=matches, 1=requests, 2=connections
+  int _selectedTab = 0; // 0=peers/matches, 1=requests, 2=connections
+
+  String? _selectedInterest;
+  final _searchCtrl = TextEditingController();
+
+  final List<String> _interestsList = const [
+    'All',
+    'Coding',
+    'Hackathons',
+    'AI',
+    'Robotics',
+    'Web Dev',
+    'Data Science',
+    'Gaming',
+    'Design',
+    'Startups',
+    'Music',
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -633,13 +657,39 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
     });
     try {
       _myProfile = await client.profile.getProfile(currentProfileId!);
-      _matches = await client.profile.findStudyPartners(currentProfileId!);
+      _allProfiles = await client.profile.listProfiles(limit: 50, offset: 0);
       _incoming =
           await client.studyPartner.getIncomingRequests(currentProfileId!);
       _outgoing =
           await client.studyPartner.getOutgoingRequests(currentProfileId!);
       _connections =
           await client.studyPartner.getConnections(currentProfileId!);
+
+      // Rank peers by shared interests & subjects
+      final others = _allProfiles
+          .where((p) => p.id != null && p.id != currentProfileId)
+          .toList();
+
+      others.sort((a, b) {
+        final aSharedInterests = a.interests
+            .where((i) => _myProfile?.interests.contains(i) ?? false)
+            .length;
+        final bSharedInterests = b.interests
+            .where((i) => _myProfile?.interests.contains(i) ?? false)
+            .length;
+        final aSharedSubjects = a.studySubjects
+            .where((s) => _myProfile?.studySubjects.contains(s) ?? false)
+            .length;
+        final bSharedSubjects = b.studySubjects
+            .where((s) => _myProfile?.studySubjects.contains(s) ?? false)
+            .length;
+
+        final aScore = (aSharedInterests * 4) + (aSharedSubjects * 2);
+        final bScore = (bSharedInterests * 4) + (bSharedSubjects * 2);
+        return bScore.compareTo(aScore);
+      });
+
+      _matches = others;
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       if (mounted) {
@@ -656,18 +706,25 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
       await client.studyPartner.sendRequest(
         currentProfileId!,
         toProfileId,
-        null,
+        'Hi, let\'s connect on CampusLoop!',
       );
       _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request sent!')),
+          const SnackBar(
+            content: Text('🎉 Connection request sent!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.primaryOrange,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
@@ -718,7 +775,7 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(
             children: [
-              _subTab('Matches', 0, _matches.length),
+              _subTab('Find Peers', 0, _matches.length),
               const SizedBox(width: 8),
               _subTab('Requests', 1, _incoming.length + _outgoing.length),
               const SizedBox(width: 8),
@@ -730,6 +787,7 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: _loadData,
+            color: CampusTheme.primaryOrange,
             child: _selectedTab == 0
                 ? _buildMatches()
                 : _selectedTab == 1
@@ -751,12 +809,12 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? CampusTheme.deepTeal.withValues(alpha: 0.15)
+                ? CampusTheme.primaryOrange.withValues(alpha: 0.15)
                 : CampusTheme.darkCardLight,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected
-                  ? CampusTheme.deepTeal
+                  ? CampusTheme.primaryOrange
                   : CampusTheme.divider.withValues(alpha: 0.3),
             ),
           ),
@@ -768,7 +826,7 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: isSelected
-                      ? CampusTheme.deepTeal
+                      ? CampusTheme.primaryOrange
                       : CampusTheme.textMuted,
                 ),
               ),
@@ -776,8 +834,9 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                 label,
                 style: TextStyle(
                   fontSize: 11,
+                  fontWeight: FontWeight.w600,
                   color: isSelected
-                      ? CampusTheme.deepTeal
+                      ? CampusTheme.primaryOrange
                       : CampusTheme.textMuted,
                 ),
               ),
@@ -789,105 +848,261 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
   }
 
   Widget _buildMatches() {
-    if (_matches.isEmpty) {
-      return const CampusEmptyState(
-        icon: Icons.search_off,
-        title: 'No matches found',
-        subtitle:
-            'Add more study subjects to your profile to find study partners',
-      );
-    }
+    // Filter peers by search query and interest
+    final q = _searchCtrl.text.trim().toLowerCase();
+    final filtered = _matches.where((p) {
+      if (_selectedInterest != null && _selectedInterest != 'All') {
+        final hasInterest = p.interests.any(
+            (i) => i.toLowerCase() == _selectedInterest!.toLowerCase());
+        if (!hasInterest) return false;
+      }
+      if (q.isNotEmpty) {
+        final matchesName = p.displayName.toLowerCase().contains(q);
+        final matchesDept = (p.department ?? '').toLowerCase().contains(q);
+        final matchesInterest =
+            p.interests.any((i) => i.toLowerCase().contains(q));
+        final matchesSubject =
+            p.studySubjects.any((s) => s.toLowerCase().contains(q));
+        return matchesName || matchesDept || matchesInterest || matchesSubject;
+      }
+      return true;
+    }).toList();
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 16),
-      itemCount: _matches.length,
-      itemBuilder: (ctx, i) {
-        final partner = _matches[i];
-        final matchingSubjects = partner.studySubjects
-            .where((s) => _myProfile?.studySubjects.contains(s) ?? false)
-            .toList();
-
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor:
-                      CampusTheme.softBlue.withValues(alpha: 0.2),
-                  child: Text(
-                    partner.displayName[0].toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: CampusTheme.softBlue,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        partner.displayName,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (partner.department != null)
-                        Text(
-                          partner.department!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: CampusTheme.textMuted,
-                          ),
-                        ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: matchingSubjects
-                            .map((s) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: CampusTheme.mint
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    s,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      color: CampusTheme.mint,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () => _sendRequest(partner.id!),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                  ),
-                  child: const Text('Connect', style: TextStyle(fontSize: 13)),
-                ),
-              ],
+    return Column(
+      children: [
+        // Search bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: TextField(
+            controller: _searchCtrl,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'Search peers by interest, subject, or name...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchCtrl.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
             ),
           ),
-        );
-      },
+        ),
+
+        // Interest filter chips
+        SizedBox(
+          height: 38,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _interestsList.length,
+            itemBuilder: (ctx, i) {
+              final interest = _interestsList[i];
+              final isSelected = (_selectedInterest == null && interest == 'All') ||
+                  _selectedInterest == interest;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(interest),
+                  selected: isSelected,
+                  selectedColor: CampusTheme.primaryOrange,
+                  checkmarkColor: Colors.white,
+                  backgroundColor: CampusTheme.darkCardLight,
+                  labelStyle: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? Colors.white : CampusTheme.textMuted,
+                  ),
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedInterest = interest == 'All' ? null : interest;
+                    });
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Expanded(
+          child: filtered.isEmpty
+              ? const CampusEmptyState(
+                  icon: Icons.person_search_rounded,
+                  title: 'No peers found',
+                  subtitle:
+                      'Try selecting another interest or invite classmates to join!',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  itemCount: filtered.length,
+                  itemBuilder: (ctx, i) {
+                    final partner = filtered[i];
+                    final isConnected = _connections.any((c) =>
+                        (c.fromProfileId == partner.id &&
+                            c.toProfileId == currentProfileId) ||
+                        (c.toProfileId == partner.id &&
+                            c.fromProfileId == currentProfileId));
+                    final isPending = _outgoing
+                        .any((c) => c.toProfileId == partner.id);
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: CampusTheme.primaryOrange
+                                  .withValues(alpha: 0.2),
+                              child: Text(
+                                partner.displayName.isNotEmpty
+                                    ? partner.displayName[0].toUpperCase()
+                                    : 'S',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: CampusTheme.primaryOrange,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    partner.displayName,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  if (partner.department != null)
+                                    Text(
+                                      '${partner.department} · Year ${partner.year ?? 1}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: CampusTheme.textMuted,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 6),
+                                  // Interests
+                                  if (partner.interests.isNotEmpty)
+                                    Wrap(
+                                      spacing: 4,
+                                      runSpacing: 4,
+                                      children: partner.interests.map((interest) {
+                                        final isShared = _myProfile?.interests
+                                                .contains(interest) ??
+                                            false;
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isShared
+                                                ? CampusTheme.primaryOrange
+                                                    .withValues(alpha: 0.18)
+                                                : CampusTheme.darkCardLight,
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            border: isShared
+                                                ? Border.all(
+                                                    color: CampusTheme
+                                                        .primaryOrange
+                                                        .withValues(alpha: 0.35))
+                                                : null,
+                                          ),
+                                          child: Text(
+                                            isShared ? '🔥 $interest' : interest,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: isShared
+                                                  ? CampusTheme.primaryOrange
+                                                  : CampusTheme.textMuted,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (isConnected)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: CampusTheme.mint
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check_circle_rounded,
+                                        size: 14, color: CampusTheme.mint),
+                                    SizedBox(width: 4),
+                                    Text('Connected',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: CampusTheme.mint)),
+                                  ],
+                                ),
+                              )
+                            else if (isPending)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: CampusTheme.amberOrange
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text('Pending ⏳',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: CampusTheme.amberOrange)),
+                              )
+                            else
+                              ElevatedButton(
+                                onPressed: () => _sendRequest(partner.id!),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: CampusTheme.primaryOrange,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Connect',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 
