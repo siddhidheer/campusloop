@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../theme/campus_theme.dart';
-import '../home/home_screen.dart';
-import '../discover/discover_screen.dart';
-import '../communities/communities_screen.dart';
-import '../updates/updates_screen.dart';
-import '../profile/profile_screen.dart';
+import '../theme/campus_theme.dart';
+import 'home/home_screen.dart';
+import 'discover/discover_screen.dart';
+import 'communities/communities_screen.dart';
+import 'updates/updates_screen.dart';
+import 'profile/profile_screen.dart';
 
 /// Main app shell with bottom navigation.
 /// Five tabs: Home, Discover, Communities, Updates, Profile.

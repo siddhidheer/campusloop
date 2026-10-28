@@ -42,9 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final profileFuture = currentProfileId != null
           ? client.profile.getProfile(currentProfileId!)
           : Future.value(null);
-      final eventsFuture = client.event.listEvents(limit: 5);
-      final communitiesFuture = client.community.listCommunities(limit: 4);
-      final updatesFuture = client.campusUpdate.listUpdates(limit: 3);
+      final eventsFuture = client.event.listEvents(limit: 5, offset: 0);
+      final communitiesFuture =
+          client.community.listCommunities(limit: 4, offset: 0);
+      final updatesFuture =
+          client.campusUpdate.listUpdates(limit: 3, offset: 0);
 
       final results = await Future.wait([
         profileFuture,

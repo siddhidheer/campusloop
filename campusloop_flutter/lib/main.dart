@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:campusloop_client/campusloop_client.dart';
-import 'screens/app_shell.dart';
 import 'screens/auth/login_screen.dart';
 import 'theme/campus_theme.dart';
 
@@ -18,12 +17,11 @@ void main() {
   // Defaults to production Serverpod Cloud: https://api.campusloop.serverpod.cloud/
   const serverUrl = String.fromEnvironment(
     'SERVER_URL',
-    defaultValue: 'https://api.campusloop.serverpod.cloud/',
+    defaultValue: 'https://campusloop1.api.serverpod.space/',
   );
 
   client = Client(
     serverUrl,
-    authenticationKeyManager: FlutterAuthenticationKeyManager(),
   )..connectivityMonitor = FlutterConnectivityMonitor();
 
   runApp(const CampusLoopApp());

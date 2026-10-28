@@ -98,6 +98,7 @@ class _EventsTabState extends State<_EventsTab> {
       final events = await client.event.listEvents(
         category: _selectedCategory,
         limit: 50,
+        offset: 0,
       );
       final categories = await client.event.getCategories();
       if (mounted) {

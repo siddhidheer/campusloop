@@ -23,7 +23,3 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  fonts:
-    - family: CampusLoop
-      fonts:
-        - asset: fonts/placeholder.ttf

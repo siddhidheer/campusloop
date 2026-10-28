@@ -38,7 +38,8 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       _error = null;
     });
     try {
-      final communities = await client.community.listCommunities(limit: 50);
+      final communities =
+          await client.community.listCommunities(limit: 50, offset: 0);
       final joined = await client.community.getJoinedCommunities(
         currentProfileId!,
       );
@@ -519,6 +520,8 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
     try {
       final posts = await client.communityPost.listPosts(
         widget.community.id!,
+        limit: 50,
+        offset: 0,
       );
       final members = await client.community.getMembers(
         widget.community.id!,

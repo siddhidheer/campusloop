@@ -34,6 +34,7 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
       final updates = await client.campusUpdate.listUpdates(
         category: _selectedCategory,
         limit: 50,
+        offset: 0,
       );
       final categories = await client.campusUpdate.getCategories();
       if (mounted) {
