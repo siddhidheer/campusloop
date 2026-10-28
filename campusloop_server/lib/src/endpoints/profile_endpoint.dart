@@ -137,4 +137,78 @@ class ProfileEndpoint extends Endpoint {
 
     return matches;
   }
+
+  /// Permanently delete student account and all related records across the platform.
+  Future<bool> deleteAccount(Session session, int profileId) async {
+    final profile = await StudentProfile.db.findById(session, profileId);
+    if (profile == null) {
+      return true;
+    }
+
+    // 1. Delete study partner requests (both sent and received)
+    final sentRequests = await StudyPartnerRequest.db.find(
+      session,
+      where: (t) => t.fromProfileId.equals(profileId),
+    );
+    for (final r in sentRequests) {
+      await StudyPartnerRequest.db.deleteRow(session, r);
+    }
+
+    final receivedRequests = await StudyPartnerRequest.db.find(
+      session,
+      where: (t) => t.toProfileId.equals(profileId),
+    );
+    for (final r in receivedRequests) {
+      await StudyPartnerRequest.db.deleteRow(session, r);
+    }
+
+    // 2. Delete community memberships and adjust member count
+    final memberships = await CommunityMembership.db.find(
+      session,
+      where: (t) => t.profileId.equals(profileId),
+    );
+    for (final m in memberships) {
+      try {
+        final comm = await Community.db.findById(session, m.communityId);
+        if (comm != null && comm.memberCount > 0) {
+          comm.memberCount = comm.memberCount - 1;
+          comm.updatedAt = DateTime.now();
+          await Community.db.updateRow(session, comm);
+        }
+      } catch (_) {}
+      await CommunityMembership.db.deleteRow(session, m);
+    }
+
+    // 3. Delete community posts authored by the student
+    final posts = await CommunityPost.db.find(
+      session,
+      where: (t) => t.authorProfileId.equals(profileId),
+    );
+    for (final p in posts) {
+      await CommunityPost.db.deleteRow(session, p);
+    }
+
+    // 4. Delete campus events organized by this student
+    final events = await CampusEvent.db.find(
+      session,
+      where: (t) => t.organizerProfileId.equals(profileId),
+    );
+    for (final e in events) {
+      await CampusEvent.db.deleteRow(session, e);
+    }
+
+    // 5. Delete campus updates authored by this student
+    final updates = await CampusUpdate.db.find(
+      session,
+      where: (t) => t.authorProfileId.equals(profileId),
+    );
+    for (final u in updates) {
+      await CampusUpdate.db.deleteRow(session, u);
+    }
+
+    // 6. Delete the student profile itself
+    await StudentProfile.db.deleteRow(session, profile);
+
+    return true;
+  }
 }

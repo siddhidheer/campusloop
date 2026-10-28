@@ -485,6 +485,14 @@ class EndpointProfile extends _isc.EndpointRef {
         'findStudyPartners',
         {'profileId': profileId},
       );
+
+  /// Permanently delete student account and all related records across the platform.
+  _ida.Future<bool> deleteAccount(int profileId) =>
+      caller.callServerEndpoint<bool>(
+        'profile',
+        'deleteAccount',
+        {'profileId': profileId},
+      );
 }
 
 /// Endpoint for seeding development/demo data.

@@ -848,6 +848,24 @@ class Endpoints extends _is.EndpointDispatch {
             params['profileId'],
           ),
         ),
+        'deleteAccount': _is.MethodConnector(
+          name: 'deleteAccount',
+          params: {
+            'profileId': _is.ParameterDescription(
+              name: 'profileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['profile'] as _i2cx2pww.ProfileEndpoint).deleteAccount(
+            session,
+            params['profileId'],
+          ),
+        ),
       },
     );
     connectors['seed'] = _is.EndpointConnector(

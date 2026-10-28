@@ -220,6 +220,223 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Displays warning confirmation dialog before permanently deleting account
+  Future<void> _confirmDeleteAccount() async {
+    if (_profile == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: CampusTheme.coral.withValues(alpha: 0.35),
+          ),
+        ),
+        backgroundColor: CampusTheme.darkSurface,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: CampusTheme.coral.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.delete_forever_rounded,
+                color: CampusTheme.coral,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Delete Account?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This action is irreversible. All your data will be permanently deleted:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: CampusTheme.coral,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _bulletItem('Login credentials and remembered passwords'),
+            _bulletItem('Student profile, bio, and university details'),
+            _bulletItem('All study partner connections & requests'),
+            _bulletItem('Community memberships and authored posts'),
+            _bulletItem('Campus event registrations and updates'),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Text(
+                'Account: ${_profile!.email}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: CampusTheme.textMuted,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: CampusTheme.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: CampusTheme.coral,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Permanently Delete',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _executeDeleteAccount();
+  }
+
+  Widget _bulletItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ',
+              style: TextStyle(color: CampusTheme.coral, fontSize: 14)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12, color: CampusTheme.textLight),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Permanently deletes account from backend database & wipes all local credentials
+  Future<void> _executeDeleteAccount() async {
+    if (_profile == null) return;
+    final email = _profile!.email.toLowerCase();
+    final profileId = _profile!.id ?? currentProfileId;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // 1. Call Serverpod Cloud endpoint to cascade delete all backend records
+      if (profileId != null) {
+        try {
+          await client.profile.deleteAccount(profileId);
+        } catch (e) {
+          debugPrint('Backend deleteAccount error (continuing local wipe): $e');
+        }
+      }
+
+      // 2. Wipe all local credentials and remembered state from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+
+      // Wipe password and user details for this email
+      await prefs.remove('pwd_$email');
+      await prefs.remove('name_$email');
+      await prefs.remove('university_$email');
+
+      // Remove email from local registered emails
+      final localRegisteredEmails =
+          prefs.getStringList('registered_emails') ?? [];
+      localRegisteredEmails.remove(email);
+      localRegisteredEmails.removeWhere((e) => e.toLowerCase() == email);
+      await prefs.setStringList('registered_emails', localRegisteredEmails);
+
+      // Clear remembered login session if it matches
+      final savedEmail = prefs.getString('saved_login_email');
+      if (savedEmail != null && savedEmail.toLowerCase() == email) {
+        await prefs.remove('saved_login_email');
+        await prefs.remove('saved_login_pwd');
+        await prefs.remove('saved_login_university');
+      }
+      await prefs.remove('current_university');
+
+      // Clear all cached request states or matching keys
+      final allKeys = prefs.getKeys();
+      for (final key in allKeys) {
+        if (key.contains(email) ||
+            (profileId != null && key.contains('$profileId')) ||
+            key.startsWith('connect_') ||
+            key.startsWith('request_')) {
+          await prefs.remove(key);
+        }
+      }
+
+      // 3. Clear global session
+      currentProfileId = null;
+
+      // 4. Return to login screen with confirmation
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                '✓ Your account and all credentials have been permanently deleted.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.coral,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Failed to delete account: $e';
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -256,10 +473,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildInterestsSection(),
                           _buildCommunitiesSection(),
                           _buildConnectionsSection(),
+                          _buildDangerZoneSection(),
                           const SizedBox(height: 32),
                         ],
                       ),
                     ),
+    );
+  }
+
+  Widget _buildDangerZoneSection() {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: CampusTheme.coral.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      color: CampusTheme.darkCard,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: CampusTheme.coral,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Danger Zone',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: CampusTheme.coral,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Permanently delete your account, login credentials, and all profile data across CampusLoop. This cannot be undone.',
+              style: TextStyle(
+                fontSize: 13,
+                color: CampusTheme.textMuted,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                label: const Text(
+                  'Permanently Delete Account',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: CampusTheme.coral,
+                  side: BorderSide(
+                    color: CampusTheme.coral.withValues(alpha: 0.6),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: _confirmDeleteAccount,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

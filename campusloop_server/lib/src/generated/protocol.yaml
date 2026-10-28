@@ -37,6 +37,7 @@ profile:
   - updateProfile:
   - listProfiles:
   - findStudyPartners:
+  - deleteAccount:
 seed:
   - seedDevelopmentData:
 studyPartner:
