@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:campusloop_client/campusloop_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
@@ -17,6 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   StudentProfile? _profile;
   List<Community> _joinedCommunities = [];
   List<StudyPartnerRequest> _connections = [];
+  String _university = '';
   bool _isLoading = true;
   String? _error;
 
@@ -38,11 +40,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final connections =
           await client.studyPartner.getConnections(currentProfileId!);
 
+      // Load saved university / college
+      String univ = '';
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (profile?.email != null) {
+          univ = prefs.getString('university_${profile!.email}') ?? '';
+        }
+        if (univ.isEmpty) {
+          univ = prefs.getString('current_university') ??
+              prefs.getString('saved_login_university') ??
+              '';
+        }
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
           _profile = profile;
           _joinedCommunities = communities;
           _connections = connections;
+          _university = univ;
           _isLoading = false;
         });
       }
@@ -60,6 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_profile == null) return;
 
     final nameCtrl = TextEditingController(text: _profile!.displayName);
+    final univCtrl = TextEditingController(text: _university);
     final deptCtrl = TextEditingController(text: _profile!.department ?? '');
     final bioCtrl = TextEditingController(text: _profile!.bio ?? '');
     final subjectsCtrl = TextEditingController(
@@ -81,6 +99,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   controller: nameCtrl,
                   decoration:
                       const InputDecoration(labelText: 'Display Name'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: univCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'University / College Name',
+                    prefixIcon: Icon(Icons.account_balance_rounded, size: 20),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -132,6 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
+                  final newUniv = univCtrl.text.trim();
                   _profile!
                     ..displayName = nameCtrl.text.trim()
                     ..department = deptCtrl.text.trim().isNotEmpty
@@ -152,6 +179,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         .toList();
 
                   await client.profile.updateProfile(_profile!);
+
+                  // Persist updated university
+                  try {
+                    final prefs = await SharedPreferences.getInstance();
+                    if (_profile?.email != null) {
+                      await prefs.setString(
+                          'university_${_profile!.email}', newUniv);
+                    }
+                    await prefs.setString('current_university', newUniv);
+                  } catch (_) {}
+
                   Navigator.pop(ctx);
                   _loadProfile();
                   if (mounted) {
@@ -175,6 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _logout() {
     currentProfileId = null;
+    ScaffoldMessenger.of(context).clearSnackBars();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (_) => false,
@@ -342,10 +381,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _infoRow(Icons.school, 'Department',
-                _profile!.department ?? 'Not set'),
-            _infoRow(Icons.calendar_today, 'Year',
-                _profile!.year != null ? 'Year ${_profile!.year}' : 'Not set'),
+            _infoRow(
+              Icons.account_balance_rounded,
+              'Institution',
+              _university.isNotEmpty ? _university : 'Not set',
+            ),
+            const Divider(height: 16, thickness: 0.5, color: Colors.white12),
+            _infoRow(
+              Icons.school_rounded,
+              'Department',
+              _profile!.department ?? 'Not set',
+            ),
+            const Divider(height: 16, thickness: 0.5, color: Colors.white12),
+            _infoRow(
+              Icons.calendar_today_rounded,
+              'Year',
+              _profile!.year != null ? 'Year ${_profile!.year}' : 'Not set',
+            ),
           ],
         ),
       ),
@@ -354,25 +406,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _infoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(icon, size: 18, color: CampusTheme.deepTeal),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: CampusTheme.textMuted,
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 85,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: CampusTheme.textMuted,
+              ),
             ),
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: CampusTheme.textLight,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: CampusTheme.textLight,
+              ),
             ),
           ),
         ],

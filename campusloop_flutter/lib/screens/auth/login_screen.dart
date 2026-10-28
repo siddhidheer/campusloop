@@ -35,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _universityController = TextEditingController();
   final _deptController =
       TextEditingController(text: 'Computer Science & Engineering');
   final _bioController = TextEditingController(
@@ -54,13 +55,30 @@ class _LoginScreenState extends State<LoginScreen>
 
   final List<String> _commonDepartments = const [
     'Computer Science & Engineering',
-    'Information Technology',
-    'Electronics & Communication',
-    'Electrical Engineering',
+    'Information Technology (IT)',
+    'Artificial Intelligence & Data Science',
+    'Electronics & Communication (ECE)',
+    'Electrical & Electronics (EEE)',
     'Mechanical Engineering',
-    'Data Science & AI',
-    'Business Administration',
-    'Design & Architecture',
+    'Civil Engineering',
+    'Chemical Engineering',
+    'Aerospace & Aeronautical Engineering',
+    'Biotechnology & Biomedical Engineering',
+    'Robotics & Automation',
+    'Cybersecurity & Cloud Computing',
+    'Business Administration (BBA / MBA)',
+    'Commerce & Accounting',
+    'Economics & Financial Studies',
+    'Design, UI/UX & Media Arts',
+    'Architecture & Urban Planning',
+    'Law & Legal Studies',
+    'Humanities & Social Sciences',
+    'Mathematics & Computing',
+    'Physics & Applied Sciences',
+    'Chemistry & Materials Science',
+    'Medicine, Pharmacy & Health Sciences',
+    'Journalism & Mass Media',
+    'Environmental Science & Ecology',
   ];
 
   final List<String> _suggestedSubjects = const [
@@ -130,7 +148,11 @@ class _LoginScreenState extends State<LoginScreen>
       final prefs = await SharedPreferences.getInstance();
       final savedEmail = prefs.getString('saved_login_email') ?? '';
       final savedPwd = prefs.getString('saved_login_pwd') ?? '';
+      final savedUniv = prefs.getString('saved_login_university') ?? '';
 
+      if (savedUniv.isNotEmpty && mounted) {
+        _universityController.text = savedUniv;
+      }
       if (savedEmail.isNotEmpty && mounted) {
         setState(() {
           _signInEmailController.text = savedEmail;
@@ -149,6 +171,7 @@ class _LoginScreenState extends State<LoginScreen>
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _universityController.dispose();
     _deptController.dispose();
     _bioController.dispose();
     _customSubjectCtrl.dispose();
@@ -156,6 +179,135 @@ class _LoginScreenState extends State<LoginScreen>
     _signInEmailController.dispose();
     _signInPasswordController.dispose();
     super.dispose();
+  }
+
+  /// Interactive bottom sheet for selecting from 25+ departments
+  void _showDepartmentPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: CampusTheme.darkCard,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final filtered = _commonDepartments
+                .where((d) =>
+                    d.toLowerCase().contains(searchQuery.toLowerCase()))
+                .toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.72,
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.school_rounded,
+                              color: CampusTheme.mint, size: 22),
+                          SizedBox(width: 8),
+                          Text(
+                            'Select Department',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded,
+                            color: CampusTheme.textMuted),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Search department (e.g. Computer, Business)...',
+                      prefixIcon: const Icon(Icons.search_rounded,
+                          color: CampusTheme.textMuted),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      filled: true,
+                      fillColor: CampusTheme.darkCardLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (q) =>
+                        setSheetState(() => searchQuery = q.trim()),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(
+                          height: 1, thickness: 0.5, color: Colors.white10),
+                      itemBuilder: (ctx, idx) {
+                        final dept = filtered[idx];
+                        final isSelected =
+                            _deptController.text.trim() == dept;
+                        return ListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          title: Text(
+                            dept,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? CampusTheme.primaryOrange
+                                  : Colors.white,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.normal,
+                              fontSize: 14,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded,
+                                  color: CampusTheme.primaryOrange, size: 20)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _deptController.text = dept;
+                              if (_error != null) _error = null;
+                            });
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   /// Register a brand new student profile with duplicate email protection & validation feedback
@@ -167,12 +319,14 @@ class _LoginScreenState extends State<LoginScreen>
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeOutCubic,
       );
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              '⚠️ Please fill in all required fields (Name, Email, Password, Department)'),
+              '⚠️ Please fill in all required fields (Name, Email, University, Password, Department)'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: CampusTheme.coral,
+          duration: Duration(seconds: 3),
         ),
       );
       return;
@@ -180,6 +334,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     final name = _nameController.text.trim();
     final email = _emailController.text.trim().toLowerCase();
+    final university = _universityController.text.trim();
     final password = _passwordController.text;
     final dept = _deptController.text.trim();
     final bio = _bioController.text.trim();
@@ -188,6 +343,7 @@ class _LoginScreenState extends State<LoginScreen>
       _isLoading = true;
       _error = null;
     });
+    ScaffoldMessenger.of(context).clearSnackBars();
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -209,16 +365,14 @@ class _LoginScreenState extends State<LoginScreen>
           currentProfileId = existingOnServer?.id ?? 1;
           await prefs.setString('saved_login_email', email);
           await prefs.setString('saved_login_pwd', password);
+          if (university.isNotEmpty) {
+            await prefs.setString('university_$email', university);
+            await prefs.setString('current_university', university);
+            await prefs.setString('saved_login_university', university);
+          }
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    '👋 Welcome back, ${name.isNotEmpty ? name : "Student"}!'),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: CampusTheme.mint,
-              ),
-            );
+            ScaffoldMessenger.of(context).clearSnackBars();
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const AppShell()),
             );
@@ -233,11 +387,12 @@ class _LoginScreenState extends State<LoginScreen>
               'Email already registered. Please sign in as an Existing User.';
         });
         _scrollController.animateTo(
-          180,
+          0,
           duration: const Duration(milliseconds: 350),
           curve: Curves.easeOut,
         );
         if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Email already registered! Tap to sign in.'),
@@ -254,6 +409,7 @@ class _LoginScreenState extends State<LoginScreen>
                     _signInEmailController.text = email;
                     _signInPasswordController.text = password;
                   });
+                  ScaffoldMessenger.of(context).clearSnackBars();
                 },
               ),
             ),
@@ -319,9 +475,14 @@ class _LoginScreenState extends State<LoginScreen>
         newProfile = null;
       }
 
-      // Persistently remember credentials
+      // Persistently remember credentials and university
       await prefs.setString('pwd_$email', password);
       await prefs.setString('name_$email', name);
+      if (university.isNotEmpty) {
+        await prefs.setString('university_$email', university);
+        await prefs.setString('current_university', university);
+        await prefs.setString('saved_login_university', university);
+      }
       if (!localRegisteredEmails.contains(email)) {
         localRegisteredEmails.add(email);
         await prefs.setStringList('registered_emails', localRegisteredEmails);
@@ -332,13 +493,7 @@ class _LoginScreenState extends State<LoginScreen>
       currentProfileId = newProfile?.id ?? 1;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🎉 Welcome to CampusLoop, $name!'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: CampusTheme.mint,
-          ),
-        );
+        ScaffoldMessenger.of(context).clearSnackBars();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const AppShell()),
         );
@@ -349,6 +504,11 @@ class _LoginScreenState extends State<LoginScreen>
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('pwd_$email', password);
         await prefs.setString('name_$email', name);
+        if (university.isNotEmpty) {
+          await prefs.setString('university_$email', university);
+          await prefs.setString('current_university', university);
+          await prefs.setString('saved_login_university', university);
+        }
         await prefs.setString('saved_login_email', email);
         await prefs.setString('saved_login_pwd', password);
         final localRegisteredEmails =
@@ -362,13 +522,7 @@ class _LoginScreenState extends State<LoginScreen>
       currentProfileId = 1;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🎉 Welcome to CampusLoop, $name!'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: CampusTheme.primaryOrange,
-          ),
-        );
+        ScaffoldMessenger.of(context).clearSnackBars();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const AppShell()),
         );
@@ -424,12 +578,27 @@ class _LoginScreenState extends State<LoginScreen>
               'No account found with this email. Please select New User to register.';
         });
         if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content:
-                  Text('No account found! Please register as a New User.'),
+                  const Text('No account found! Tap to register as New User.'),
               behavior: SnackBarBehavior.floating,
               backgroundColor: CampusTheme.coral,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'Register',
+                textColor: Colors.white,
+                onPressed: () {
+                  setState(() {
+                    _isNewUser = true;
+                    _error = null;
+                    _emailController.text = email;
+                    _passwordController.text = password;
+                  });
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                },
+              ),
             ),
           );
         }
@@ -444,11 +613,13 @@ class _LoginScreenState extends State<LoginScreen>
             _error = 'Incorrect password. Please try again.';
           });
           if (mounted) {
+            ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Incorrect password. Please try again.'),
                 behavior: SnackBarBehavior.floating,
                 backgroundColor: CampusTheme.coral,
+                duration: Duration(seconds: 3),
               ),
             );
           }
@@ -470,17 +641,14 @@ class _LoginScreenState extends State<LoginScreen>
 
       currentProfileId = profile?.id ?? 1;
 
+      // Update current university from saved prefs if present
+      final savedUniv = prefs.getString('university_$email');
+      if (savedUniv != null && savedUniv.isNotEmpty) {
+        await prefs.setString('current_university', savedUniv);
+      }
+
       if (mounted) {
-        final name = profile?.displayName ??
-            prefs.getString('name_$email') ??
-            'Student';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('👋 Welcome back, $name!'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: CampusTheme.primaryOrange,
-          ),
-        );
+        ScaffoldMessenger.of(context).clearSnackBars();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const AppShell()),
         );
@@ -489,6 +657,7 @@ class _LoginScreenState extends State<LoginScreen>
       // Offline fallback
       currentProfileId = 1;
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const AppShell()),
         );
@@ -716,10 +885,13 @@ class _LoginScreenState extends State<LoginScreen>
                             // New User Tab
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => setState(() {
-                                  _isNewUser = true;
-                                  _error = null;
-                                }),
+                                onTap: () {
+                                  setState(() {
+                                    _isNewUser = true;
+                                    _error = null;
+                                  });
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding:
@@ -769,10 +941,13 @@ class _LoginScreenState extends State<LoginScreen>
                             // Existing User Tab
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => setState(() {
-                                  _isNewUser = false;
-                                  _error = null;
-                                }),
+                                onTap: () {
+                                  setState(() {
+                                    _isNewUser = false;
+                                    _error = null;
+                                  });
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding:
@@ -882,10 +1057,11 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             const SizedBox(height: 20),
 
-                            // Error Message Banner (e.g. Email already registered)
+                            // Error Message Banner (e.g. Email already registered) with 1-tap dismiss
                             if (_error != null) ...[
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
                                   color:
                                       CampusTheme.coral.withValues(alpha: 0.15),
@@ -909,6 +1085,17 @@ class _LoginScreenState extends State<LoginScreen>
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close_rounded,
+                                          color: Colors.white70, size: 18),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        setState(() => _error = null);
+                                        ScaffoldMessenger.of(context)
+                                            .clearSnackBars();
+                                      },
                                     ),
                                   ],
                                 ),
@@ -992,6 +1179,10 @@ class _LoginScreenState extends State<LoginScreen>
             controller: _nameController,
             style: const TextStyle(color: Colors.white),
             textCapitalization: TextCapitalization.words,
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+              ScaffoldMessenger.of(context).clearSnackBars();
+            },
             decoration: const InputDecoration(
               hintText: 'e.g. Siddhi Dheer',
               prefixIcon: Icon(Icons.person_rounded,
@@ -1012,6 +1203,10 @@ class _LoginScreenState extends State<LoginScreen>
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: Colors.white),
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+              ScaffoldMessenger.of(context).clearSnackBars();
+            },
             decoration: const InputDecoration(
               hintText: 'e.g. siddhi@campus.edu',
               prefixIcon: Icon(Icons.alternate_email_rounded,
@@ -1029,12 +1224,40 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 16),
 
-          // 3. Create Password
+          // 3. University / College Name
+          _buildLabel('University / College Name'),
+          TextFormField(
+            controller: _universityController,
+            style: const TextStyle(color: Colors.white),
+            textCapitalization: TextCapitalization.words,
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+              ScaffoldMessenger.of(context).clearSnackBars();
+            },
+            decoration: const InputDecoration(
+              hintText: 'e.g. Stanford University / Tech Campus',
+              prefixIcon: Icon(Icons.account_balance_rounded,
+                  color: CampusTheme.amberOrange),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your university or college name';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // 4. Create Password
           _buildLabel('Create Password'),
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
             style: const TextStyle(color: Colors.white),
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+              ScaffoldMessenger.of(context).clearSnackBars();
+            },
             decoration: InputDecoration(
               hintText: 'At least 6 characters...',
               prefixIcon: const Icon(Icons.lock_outline_rounded,
@@ -1063,11 +1286,11 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 16),
 
-          // 4. Department & Year Row
+          // 5. Department & Year Row
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Department
+              // Department with bottom sheet picker and custom typing
               Expanded(
                 flex: 3,
                 child: Column(
@@ -1077,20 +1300,19 @@ class _LoginScreenState extends State<LoginScreen>
                     TextFormField(
                       controller: _deptController,
                       style: const TextStyle(color: Colors.white, fontSize: 13),
+                      onChanged: (_) {
+                        if (_error != null) setState(() => _error = null);
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                      },
                       decoration: InputDecoration(
-                        hintText: 'Department',
+                        hintText: 'Select or type department',
                         prefixIcon: const Icon(Icons.school_rounded,
                             color: CampusTheme.mint),
-                        suffixIcon: PopupMenuButton<String>(
-                          icon: const Icon(Icons.arrow_drop_down_rounded,
-                              color: CampusTheme.textMuted),
-                          onSelected: (dept) => _deptController.text = dept,
-                          itemBuilder: (ctx) => _commonDepartments
-                              .map((d) => PopupMenuItem(
-                                    value: d,
-                                    child: Text(d),
-                                  ))
-                              .toList(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.arrow_drop_down_circle_outlined,
+                              color: CampusTheme.mint, size: 20),
+                          tooltip: 'Choose from 25+ departments',
+                          onPressed: _showDepartmentPicker,
                         ),
                       ),
                       validator: (v) =>
@@ -1134,12 +1356,16 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 16),
 
-          // 5. Bio
+          // 6. Bio
           _buildLabel('Bio (About You)'),
           TextFormField(
             controller: _bioController,
             maxLines: 2,
             style: const TextStyle(color: Colors.white),
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+              ScaffoldMessenger.of(context).clearSnackBars();
+            },
             decoration: const InputDecoration(
               hintText:
                   'A short intro about your projects, skills, or goals...',
@@ -1328,10 +1554,13 @@ class _LoginScreenState extends State<LoginScreen>
           // Switcher to Existing User
           Center(
             child: TextButton(
-              onPressed: () => setState(() {
-                _isNewUser = false;
-                _error = null;
-              }),
+              onPressed: () {
+                setState(() {
+                  _isNewUser = false;
+                  _error = null;
+                });
+                ScaffoldMessenger.of(context).clearSnackBars();
+              },
               child: RichText(
                 text: const TextSpan(
                   style:
@@ -1370,6 +1599,10 @@ class _LoginScreenState extends State<LoginScreen>
             controller: _signInEmailController,
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: Colors.white),
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+              ScaffoldMessenger.of(context).clearSnackBars();
+            },
             decoration: const InputDecoration(
               hintText: 'e.g. siddhi@campus.edu',
               prefixIcon: Icon(Icons.alternate_email_rounded,
@@ -1393,6 +1626,10 @@ class _LoginScreenState extends State<LoginScreen>
             controller: _signInPasswordController,
             obscureText: _obscureSignInPassword,
             style: const TextStyle(color: Colors.white),
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+              ScaffoldMessenger.of(context).clearSnackBars();
+            },
             decoration: InputDecoration(
               hintText: 'Enter your password...',
               prefixIcon: const Icon(Icons.lock_outline_rounded,
@@ -1498,10 +1735,13 @@ class _LoginScreenState extends State<LoginScreen>
           // Switcher to New User
           Center(
             child: TextButton(
-              onPressed: () => setState(() {
-                _isNewUser = true;
-                _error = null;
-              }),
+              onPressed: () {
+                setState(() {
+                  _isNewUser = true;
+                  _error = null;
+                });
+                ScaffoldMessenger.of(context).clearSnackBars();
+              },
               child: RichText(
                 text: const TextSpan(
                   style:
