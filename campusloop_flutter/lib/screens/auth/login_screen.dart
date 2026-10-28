@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
@@ -7,7 +6,7 @@ import '../app_shell.dart';
 
 /// Modern, visually stunning Login & Onboarding Screen for CampusLoop.
 /// Features a responsive split-screen layout, rich hero artwork,
-/// glassmorphism cards, and quick demo profile selectors.
+/// student profile quick-selection, campus highlights, and clean footer.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -28,12 +27,13 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isRegistering = false;
   String? _error;
 
-  // Demo accounts for 1-click test login
-  final List<Map<String, String>> _demoProfiles = const [
+  // Registered student accounts for fast sign-in
+  final List<Map<String, String>> _studentAccounts = const [
     {
       'name': 'Aarav Sharma',
       'email': 'aarav.sharma@campus.edu',
       'dept': 'Computer Science',
+      'year': '3rd Year',
       'initials': 'AS',
       'color': '0xFF64B5F6',
     },
@@ -41,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen>
       'name': 'Priya Patel',
       'email': 'priya.patel@campus.edu',
       'dept': 'Electronics',
+      'year': '2nd Year',
       'initials': 'PP',
       'color': '0xFF69F0AE',
     },
@@ -48,6 +49,7 @@ class _LoginScreenState extends State<LoginScreen>
       'name': 'Rohan Gupta',
       'email': 'rohan.gupta@campus.edu',
       'dept': 'Computer Science',
+      'year': '4th Year',
       'initials': 'RG',
       'color': '0xFFFFB74D',
     },
@@ -55,6 +57,7 @@ class _LoginScreenState extends State<LoginScreen>
       'name': 'Ananya Singh',
       'email': 'ananya.singh@campus.edu',
       'dept': 'Data Science',
+      'year': '2nd Year',
       'initials': 'AS',
       'color': '0xFFBA68C8',
     },
@@ -186,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  /// Split screen for Desktop and Web browsers
+  /// Split screen for Desktop and Web browsers (wide screens)
   Widget _buildSplitScreen() {
     return Row(
       children: [
@@ -234,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 7),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.4),
+                            color: Colors.black.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: CampusTheme.softBlue.withValues(alpha: 0.4),
@@ -276,7 +279,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          'Connect with study buddies, discover campus events, participate in communities, and get instant faculty updates.',
+                          'Connect with study buddies, discover campus events, participate in student communities, and receive real-time announcements.',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white.withValues(alpha: 0.85),
@@ -303,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
 
-        // Right Column: Auth Form with Glass Effect
+        // Right Column: Auth Form
         Expanded(
           flex: 5,
           child: Container(
@@ -330,115 +333,148 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  /// Compact layout for mobile and small screens
+  /// Responsive full-height layout for mobile and portrait screens.
+  /// Eliminates empty bottom space by filling vertical height with highlights & footer.
   Widget _buildMobileScreen() {
-    return FadeTransition(
-      opacity: _fadeAnim,
-      child: SlideTransition(
-        position: _slideAnim,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top Hero Artwork Banner with curved bottom
-              Stack(
-                children: [
-                  SizedBox(
-                    height: 240,
-                    width: double.infinity,
-                    child: Image.asset(
-                      'assets/images/campus_hero.jpg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: CampusTheme.darkTeal,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    height: 240,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          const Color(0xFF0A1118).withValues(alpha: 0.7),
-                          const Color(0xFF0A1118),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 12,
-                    left: 24,
-                    right: 24,
-                    child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FadeTransition(
+          opacity: _fadeAnim,
+          child: SlideTransition(
+            position: _slideAnim,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'assets/images/campus_logo.jpg',
-                            width: 52,
-                            height: 52,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.loop_rounded,
-                                    size: 44, color: CampusTheme.mint),
-                          ),
+                        // Top Hero Banner
+                        _buildMobileHeroBanner(),
+
+                        // Main Sign-In Card
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                          child: _buildFormCard(isWide: false),
                         ),
-                        const SizedBox(width: 14),
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'CampusLoop',
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            Text(
-                              'Your Campus. One Loop.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: CampusTheme.softBlue,
-                              ),
-                            ),
-                          ],
+
+                        // Campus Highlights Section (fills space informatively)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: _buildCampusHighlightsCard(),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: _buildFormCard(isWide: false),
+                    // Clean Footer at the bottom
+                    _buildMobileFooter(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Mobile top hero artwork banner
+  Widget _buildMobileHeroBanner() {
+    return Stack(
+      children: [
+        SizedBox(
+          height: 250,
+          width: double.infinity,
+          child: Image.asset(
+            'assets/images/campus_hero.jpg',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: CampusTheme.darkTeal,
+            ),
+          ),
+        ),
+        Container(
+          height: 250,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.transparent,
+                const Color(0xFF0A1118).withValues(alpha: 0.65),
+                const Color(0xFF0A1118),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 16,
+          left: 20,
+          right: 20,
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/images/campus_logo.jpg',
+                  width: 52,
+                  height: 52,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.loop_rounded,
+                          size: 44, color: CampusTheme.mint),
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CampusLoop',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'Your Campus. Your Community. One Loop.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: CampusTheme.softBlue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
-  /// Interactive Form Card used in both split and mobile view
+  /// Main Form Card for Login and Account Selection
   Widget _buildFormCard({required bool isWide}) {
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF14202C).withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFF14202C).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.08),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 30,
+            blurRadius: 28,
             offset: const Offset(0, 10),
           ),
         ],
@@ -495,32 +531,41 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
           ],
 
-          // Quick Login Profile Chips Header
-          Row(
+          // Professional Heading for Student Accounts
+          const Row(
             children: [
-              const Icon(Icons.bolt_rounded, size: 18, color: CampusTheme.mint),
-              const SizedBox(width: 6),
+              Icon(Icons.person_pin_circle_rounded,
+                  size: 20, color: CampusTheme.mint),
+              SizedBox(width: 8),
               Text(
-                'Quick 1-Click Demo Profiles',
+                'Choose Student Account',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: CampusTheme.mint.withValues(alpha: 0.9),
-                  letterSpacing: 0.3,
+                  color: Colors.white,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
+          Text(
+            'Tap your registered student profile to continue instantly:',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.65),
+            ),
+          ),
+          const SizedBox(height: 14),
 
-          // Demo Profile Avatars Grid
+          // Student Account Selection Grid
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _demoProfiles.map((p) {
+            children: _studentAccounts.map((p) {
               final color = Color(int.parse(p['color']!));
               return InkWell(
                 onTap: _isLoading ? null : () => _loginWithEmail(p['email']!),
@@ -532,7 +577,7 @@ class _LoginScreenState extends State<LoginScreen>
                     color: const Color(0xFF1B2A38),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: color.withValues(alpha: 0.3),
+                      color: color.withValues(alpha: 0.35),
                     ),
                   ),
                   child: Row(
@@ -563,10 +608,10 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ),
                           Text(
-                            p['dept']!,
+                            '${p['dept']!} • ${p['year']!}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: Colors.white.withValues(alpha: 0.55),
                             ),
                           ),
                         ],
@@ -578,37 +623,37 @@ class _LoginScreenState extends State<LoginScreen>
             }).toList(),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
 
           // Divider
           Row(
             children: [
               Expanded(
                 child: Divider(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withValues(alpha: 0.12),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
-                  'OR USE EMAIL',
+                  'OR SIGN IN WITH CAMPUS EMAIL',
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.4),
-                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.45),
+                    letterSpacing: 0.6,
                   ),
                 ),
               ),
               Expanded(
                 child: Divider(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withValues(alpha: 0.12),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
           // Email Input Field
           TextField(
@@ -675,7 +720,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             TextField(
               controller: _nameController,
               style: const TextStyle(color: Colors.white),
@@ -694,7 +739,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               enabled: !_isLoading,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             TextField(
               controller: _deptController,
               style: const TextStyle(color: Colors.white),
@@ -713,7 +758,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               enabled: !_isLoading,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             Container(
               height: 52,
               decoration: BoxDecoration(
@@ -761,7 +806,7 @@ class _LoginScreenState extends State<LoginScreen>
             TextButton(
               onPressed: () => setState(() => _isRegistering = false),
               child: Text(
-                'Back to quick login',
+                'Back to account selector',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7),
                 ),
@@ -836,7 +881,7 @@ class _LoginScreenState extends State<LoginScreen>
                 children: [
                   const Icon(Icons.warning_amber_rounded,
                       size: 18, color: CampusTheme.coral),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       _error!,
@@ -851,9 +896,9 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ],
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Security / Cloud Indicator
+          // Cloud Status Indicator
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -870,11 +915,152 @@ class _LoginScreenState extends State<LoginScreen>
                 'Connected to Serverpod Cloud Production',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withValues(alpha: 0.55),
                   letterSpacing: 0.3,
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Campus Highlights & Live Activity Card (fills space informatively)
+  Widget _buildCampusHighlightsCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101A24).withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.06),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 16, color: CampusTheme.mint),
+              const SizedBox(width: 8),
+              Text(
+                'Campus Hub Live',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMiniHighlightBadge(
+                  Icons.groups_rounded,
+                  '500+',
+                  'Students Active',
+                  CampusTheme.softBlue,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildMiniHighlightBadge(
+                  Icons.event_available_rounded,
+                  '5 Live',
+                  'Upcoming Events',
+                  CampusTheme.coral,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildMiniHighlightBadge(
+                  Icons.forum_rounded,
+                  '4 Clubs',
+                  'Communities',
+                  CampusTheme.mint,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniHighlightBadge(
+      IconData icon, String title, String subtitle, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withValues(alpha: 0.6),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Clean Footer with Support & Version info
+  Widget _buildMobileFooter() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      child: Column(
+        children: [
+          Divider(color: Colors.white.withValues(alpha: 0.08)),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'CampusLoop',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+              ),
+              Text(
+                ' • Student Portal v1.0',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Need assistance? Contact support@campus.edu',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.35),
+            ),
           ),
         ],
       ),
