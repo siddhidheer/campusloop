@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../app_shell.dart';
 
-/// Comprehensive, modern Student Onboarding & Login Screen.
+/// Comprehensive Student Authentication & Onboarding Screen.
 ///
-/// Includes all profile fields: Display Name, Campus Email, Department,
-/// Year of Study, Bio, Study Subjects, and Interests with quick-toggle chips.
+/// Supports two modes:
+/// 1. New User: Full profile onboarding + password creation with duplicate check.
+/// 2. Existing User: Quick sign-in with email & password, credential persistence,
+///    and "email already registered" detection.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -22,14 +25,20 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
+  // Mode Selection: true = New User (Register), false = Existing User (Sign In)
+  bool _isNewUser = true;
+
+  // ── New User Form State ──
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _deptController =
       TextEditingController(text: 'Computer Science & Engineering');
   final _bioController = TextEditingController(
       text: 'CampusLoop student passionate about technology and collaboration.');
   int _selectedYear = 1;
+  bool _obscurePassword = true;
 
   final Set<String> _selectedSubjects = {
     'Computer Science',
@@ -80,6 +89,13 @@ class _LoginScreenState extends State<LoginScreen>
   final _customSubjectCtrl = TextEditingController();
   final _customInterestCtrl = TextEditingController();
 
+  // ── Existing User Form State ──
+  final _signInFormKey = GlobalKey<FormState>();
+  final _signInEmailController = TextEditingController();
+  final _signInPasswordController = TextEditingController();
+  bool _obscureSignInPassword = true;
+  bool _rememberMe = true;
+
   bool _isLoading = false;
   String? _error;
 
@@ -102,6 +118,26 @@ class _LoginScreenState extends State<LoginScreen>
       curve: Curves.easeOutCubic,
     ));
     _animController.forward();
+
+    _loadSavedCredentials();
+  }
+
+  /// Automatically load saved email & password from persistent storage
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('saved_login_email') ?? '';
+      final savedPwd = prefs.getString('saved_login_pwd') ?? '';
+
+      if (savedEmail.isNotEmpty && mounted) {
+        setState(() {
+          _signInEmailController.text = savedEmail;
+          _signInPasswordController.text = savedPwd;
+          // Default to Existing User tab when credentials exist
+          _isNewUser = false;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -109,18 +145,23 @@ class _LoginScreenState extends State<LoginScreen>
     _animController.dispose();
     _nameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _deptController.dispose();
     _bioController.dispose();
     _customSubjectCtrl.dispose();
     _customInterestCtrl.dispose();
+    _signInEmailController.dispose();
+    _signInPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleEnterCampus() async {
+  /// Register a brand new student profile with duplicate email protection
+  Future<void> _handleRegisterNewUser() async {
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
     final email = _emailController.text.trim().toLowerCase();
+    final password = _passwordController.text;
     final dept = _deptController.text.trim();
     final bio = _bioController.text.trim();
 
@@ -130,7 +171,112 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      // 1. Try to find existing profile with this email
+      final prefs = await SharedPreferences.getInstance();
+      final localRegisteredEmails =
+          prefs.getStringList('registered_emails') ?? [];
+
+      // Check if email is already registered locally
+      if (localRegisteredEmails.contains(email)) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Email already registered. Please sign in as an Existing User.';
+        });
+        return;
+      }
+
+      // Check if email already registered on Serverpod Cloud
+      StudentProfile? existingOnServer;
+      try {
+        existingOnServer = await client.profile.getProfileByEmail(email);
+      } catch (_) {
+        existingOnServer = null;
+      }
+
+      if (existingOnServer != null) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Email already registered. Please sign in as an Existing User.';
+        });
+        return;
+      }
+
+      // Create new profile on Serverpod Cloud database
+      final now = DateTime.now();
+      final newProfile = await client.profile.createProfile(
+        StudentProfile(
+          displayName: name,
+          email: email,
+          department: dept.isNotEmpty ? dept : 'General Studies',
+          year: _selectedYear,
+          bio: bio.isNotEmpty ? bio : 'CampusLoop student from $dept',
+          studySubjects: _selectedSubjects.toList(),
+          interests: _selectedInterests.toList(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      // Persistently remember credentials
+      await prefs.setString('pwd_$email', password);
+      await prefs.setString('name_$email', name);
+      if (!localRegisteredEmails.contains(email)) {
+        localRegisteredEmails.add(email);
+        await prefs.setStringList('registered_emails', localRegisteredEmails);
+      }
+      await prefs.setString('saved_login_email', email);
+      await prefs.setString('saved_login_pwd', password);
+
+      currentProfileId = newProfile.id;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎉 Welcome to CampusLoop, $name!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.mint,
+          ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AppShell()),
+        );
+      }
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('already exists') ||
+          msg.contains('unique') ||
+          msg.contains('duplicate')) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Email already registered. Please sign in as an Existing User.';
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  /// Sign in an existing student with credentials validation
+  Future<void> _handleExistingUserSignIn() async {
+    if (!_signInFormKey.currentState!.validate()) return;
+
+    final email = _signInEmailController.text.trim().toLowerCase();
+    final password = _signInPasswordController.text;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedPwd = prefs.getString('pwd_$email');
+      final localRegisteredEmails =
+          prefs.getStringList('registered_emails') ?? [];
+
+      // Query Serverpod Cloud database
       StudentProfile? profile;
       try {
         profile = await client.profile.getProfileByEmail(email);
@@ -138,54 +284,53 @@ class _LoginScreenState extends State<LoginScreen>
         profile = null;
       }
 
-      if (profile != null) {
-        // Update existing student with all new onboarding fields
-        profile
-          ..displayName = name
-          ..department = dept.isNotEmpty ? dept : null
-          ..year = _selectedYear
-          ..bio = bio.isNotEmpty ? bio : profile.bio
-          ..studySubjects = _selectedSubjects.toList()
-          ..interests = _selectedInterests.toList();
+      final exists = profile != null ||
+          localRegisteredEmails.contains(email) ||
+          storedPwd != null;
 
-        final updated = await client.profile.updateProfile(profile);
-        currentProfileId = updated.id ?? profile.id;
+      if (!exists) {
+        setState(() {
+          _isLoading = false;
+          _error =
+              'No account found with this email. Please select New User to register.';
+        });
+        return;
+      }
+
+      // Validate password if stored
+      if (storedPwd != null && storedPwd.isNotEmpty) {
+        if (storedPwd != password) {
+          setState(() {
+            _isLoading = false;
+            _error = 'Incorrect password. Please try again.';
+          });
+          return;
+        }
       } else {
-        // Create new profile with all fields
-        final now = DateTime.now();
-        final newProfile = await client.profile.createProfile(
-          StudentProfile(
-            displayName: name,
-            email: email,
-            department: dept.isNotEmpty ? dept : 'General Studies',
-            year: _selectedYear,
-            bio: bio.isNotEmpty
-                ? bio
-                : 'CampusLoop student from $dept',
-            studySubjects: _selectedSubjects.toList(),
-            interests: _selectedInterests.toList(),
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-        currentProfileId = newProfile.id;
+        // First login on this device for an existing server account
+        await prefs.setString('pwd_$email', password);
+      }
+
+      // Remember credentials based on checkbox
+      if (_rememberMe) {
+        await prefs.setString('saved_login_email', email);
+        await prefs.setString('saved_login_pwd', password);
+      } else {
+        await prefs.remove('saved_login_email');
+        await prefs.remove('saved_login_pwd');
+      }
+
+      if (profile != null) {
+        currentProfileId = profile.id;
       }
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AppShell()),
-        );
-      }
-    } catch (e) {
-      // Fallback: If network glitch, still allow student entry
-      setState(() {
-        _isLoading = false;
-        _error = null;
-      });
-      if (mounted) {
+        final name = profile?.displayName ??
+            prefs.getString('name_$email') ??
+            'Student';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Welcome $name! Entering campus...'),
+            content: Text('👋 Welcome back, $name!'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: CampusTheme.primaryOrange,
           ),
@@ -194,6 +339,11 @@ class _LoginScreenState extends State<LoginScreen>
           MaterialPageRoute(builder: (_) => const AppShell()),
         );
       }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = e.toString().replaceAll('Exception: ', '');
+      });
     }
   }
 
@@ -394,7 +544,128 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 20),
 
-                      // Complete Profile Registration & Sign In Card
+                      // ── NEW USER vs EXISTING USER SELECTOR TABS ──
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: CampusTheme.darkCardLight,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: CampusTheme.divider.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // New User Tab
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _isNewUser = true;
+                                  _error = null;
+                                }),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: _isNewUser
+                                        ? CampusTheme.primaryOrange
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: _isNewUser
+                                        ? [
+                                            BoxShadow(
+                                              color: CampusTheme.primaryOrange
+                                                  .withValues(alpha: 0.4),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.person_add_rounded,
+                                        size: 17,
+                                        color: _isNewUser
+                                            ? Colors.white
+                                            : CampusTheme.textMuted,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'New User',
+                                        style: TextStyle(
+                                          color: _isNewUser
+                                              ? Colors.white
+                                              : CampusTheme.textMuted,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Existing User Tab
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _isNewUser = false;
+                                  _error = null;
+                                }),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: !_isNewUser
+                                        ? CampusTheme.primaryOrange
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: !_isNewUser
+                                        ? [
+                                            BoxShadow(
+                                              color: CampusTheme.primaryOrange
+                                                  .withValues(alpha: 0.4),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.login_rounded,
+                                        size: 17,
+                                        color: !_isNewUser
+                                            ? Colors.white
+                                            : CampusTheme.textMuted,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Existing User',
+                                        style: TextStyle(
+                                          color: !_isNewUser
+                                              ? Colors.white
+                                              : CampusTheme.textMuted,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Card Containing Selected Mode's Form
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -411,390 +682,83 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ],
                         ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: const BoxDecoration(
-                                      color: CampusTheme.primaryOrange,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Student Profile & Sign In',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Fill in your profile details to unlock personalized matches, clubs, and peers.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: CampusTheme.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              if (_error != null) ...[
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header of Form
+                            Row(
+                              children: [
                                 Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: CampusTheme.coral.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: CampusTheme.coral),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.error_outline,
-                                          color: CampusTheme.coral, size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _error!,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    color: CampusTheme.primaryOrange,
+                                    shape: BoxShape.circle,
                                   ),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isNewUser
+                                      ? 'New Student Registration'
+                                      : 'Existing User Sign In',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ],
-
-                              // 1. Display Name
-                              _buildLabel('Display Name'),
-                              TextFormField(
-                                controller: _nameController,
-                                style: const TextStyle(color: Colors.white),
-                                textCapitalization: TextCapitalization.words,
-                                decoration: const InputDecoration(
-                                  hintText: 'e.g. Siddhi Dheer',
-                                  prefixIcon: Icon(Icons.person_rounded,
-                                      color: CampusTheme.primaryOrange),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your full name';
-                                  }
-                                  return null;
-                                },
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _isNewUser
+                                  ? 'Create your profile and password to join your campus loop.'
+                                  : 'Enter your registered campus email and password to sign in.',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: CampusTheme.textMuted,
                               ),
-                              const SizedBox(height: 16),
+                            ),
+                            const SizedBox(height: 20),
 
-                              // 2. Campus Email
-                              _buildLabel('Campus Email'),
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: const InputDecoration(
-                                  hintText: 'e.g. siddhi@campus.edu',
-                                  prefixIcon: Icon(Icons.alternate_email_rounded,
-                                      color: CampusTheme.softBlue),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your email address';
-                                  }
-                                  if (!value.contains('@')) {
-                                    return 'Please enter a valid email address';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // 3. Department & Year Row
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Department
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        _buildLabel('Department'),
-                                        TextFormField(
-                                          controller: _deptController,
-                                          style: const TextStyle(
-                                              color: Colors.white, fontSize: 13),
-                                          decoration: InputDecoration(
-                                            hintText: 'Department',
-                                            prefixIcon: const Icon(
-                                                Icons.school_rounded,
-                                                color: CampusTheme.mint),
-                                            suffixIcon: PopupMenuButton<String>(
-                                              icon: const Icon(
-                                                  Icons.arrow_drop_down_rounded,
-                                                  color: CampusTheme.textMuted),
-                                              onSelected: (dept) =>
-                                                  _deptController.text = dept,
-                                              itemBuilder: (ctx) =>
-                                                  _commonDepartments
-                                                      .map((d) => PopupMenuItem(
-                                                            value: d,
-                                                            child: Text(d),
-                                                          ))
-                                                      .toList(),
-                                            ),
-                                          ),
-                                          validator: (v) => (v == null || v.trim().isEmpty)
-                                              ? 'Required'
-                                              : null,
-                                        ),
-                                      ],
-                                    ),
+                            // Error Message Banner (e.g. Email already registered)
+                            if (_error != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: CampusTheme.coral.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: CampusTheme.coral.withValues(alpha: 0.4),
                                   ),
-                                  const SizedBox(width: 10),
-                                  // Year
-                                  Expanded(
-                                    flex: 2,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        _buildLabel('Year'),
-                                        DropdownButtonFormField<int>(
-                                          value: _selectedYear,
-                                          dropdownColor: CampusTheme.darkCard,
-                                          style: const TextStyle(color: Colors.white),
-                                          decoration: const InputDecoration(
-                                            contentPadding: EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 14),
-                                          ),
-                                          items: [1, 2, 3, 4, 5]
-                                              .map((y) => DropdownMenuItem(
-                                                    value: y,
-                                                    child: Text('Year $y'),
-                                                  ))
-                                              .toList(),
-                                          onChanged: (y) {
-                                            if (y != null) {
-                                              setState(() => _selectedYear = y);
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              // 4. Bio
-                              _buildLabel('Bio (About You)'),
-                              TextFormField(
-                                controller: _bioController,
-                                maxLines: 2,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: const InputDecoration(
-                                  hintText:
-                                      'A short intro about your projects, skills, or goals...',
-                                  prefixIcon: Icon(Icons.info_outline_rounded,
-                                      color: CampusTheme.lavender),
                                 ),
-                              ),
-                              const SizedBox(height: 18),
-
-                              // 5. Study Subjects
-                              _buildLabel('Study Subjects (Tap to select or add)'),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: _suggestedSubjects.map((s) {
-                                  final isSelected =
-                                      _selectedSubjects.contains(s);
-                                  return FilterChip(
-                                    label: Text(s),
-                                    selected: isSelected,
-                                    selectedColor: CampusTheme.primaryOrange,
-                                    checkmarkColor: Colors.white,
-                                    backgroundColor: CampusTheme.darkCardLight,
-                                    labelStyle: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : CampusTheme.textMuted,
-                                    ),
-                                    onSelected: (selected) {
-                                      setState(() {
-                                        if (selected) {
-                                          _selectedSubjects.add(s);
-                                        } else {
-                                          _selectedSubjects.remove(s);
-                                        }
-                                      });
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _customSubjectCtrl,
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 13),
-                                      decoration: const InputDecoration(
-                                        hintText: 'Add custom subject...',
-                                        contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 10),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error_outline_rounded,
+                                        color: CampusTheme.coral, size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _error!,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton.filled(
-                                    onPressed: () {
-                                      final text =
-                                          _customSubjectCtrl.text.trim();
-                                      if (text.isNotEmpty) {
-                                        setState(() {
-                                          _selectedSubjects.add(text);
-                                          _customSubjectCtrl.clear();
-                                        });
-                                      }
-                                    },
-                                    icon: const Icon(Icons.add, size: 18),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: CampusTheme.primaryOrange,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 18),
-
-                              // 6. Interests & Hobbies
-                              _buildLabel('Interests & Passions (Connect with peers)'),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: _suggestedInterests.map((interest) {
-                                  final isSelected =
-                                      _selectedInterests.contains(interest);
-                                  return FilterChip(
-                                    label: Text(interest),
-                                    selected: isSelected,
-                                    selectedColor: CampusTheme.coral,
-                                    checkmarkColor: Colors.white,
-                                    backgroundColor: CampusTheme.darkCardLight,
-                                    labelStyle: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : CampusTheme.textMuted,
-                                    ),
-                                    onSelected: (selected) {
-                                      setState(() {
-                                        if (selected) {
-                                          _selectedInterests.add(interest);
-                                        } else {
-                                          _selectedInterests.remove(interest);
-                                        }
-                                      });
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _customInterestCtrl,
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 13),
-                                      decoration: const InputDecoration(
-                                        hintText: 'Add custom interest...',
-                                        contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 10),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton.filled(
-                                    onPressed: () {
-                                      final text =
-                                          _customInterestCtrl.text.trim();
-                                      if (text.isNotEmpty) {
-                                        setState(() {
-                                          _selectedInterests.add(text);
-                                          _customInterestCtrl.clear();
-                                        });
-                                      }
-                                    },
-                                    icon: const Icon(Icons.add, size: 18),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: CampusTheme.coral,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 28),
-
-                              // Submit Button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 54,
-                                child: ElevatedButton(
-                                  onPressed:
-                                      _isLoading ? null : _handleEnterCampus,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: CampusTheme.primaryOrange,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    elevation: 4,
-                                    shadowColor: CampusTheme.primaryOrange
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2.5,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              'Enter CampusLoop',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 0.3,
-                                              ),
-                                            ),
-                                            SizedBox(width: 8),
-                                            Icon(Icons.arrow_forward_rounded,
-                                                size: 20),
-                                          ],
-                                        ),
+                                  ],
                                 ),
                               ),
+                              const SizedBox(height: 16),
                             ],
-                          ),
+
+                            // FORM BODY: Switched between New User and Existing User
+                            if (_isNewUser)
+                              _buildNewUserForm()
+                            else
+                              _buildExistingUserForm(),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -842,6 +806,543 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ── NEW USER REGISTRATION FORM ──
+  // ══════════════════════════════════════════════════════
+  Widget _buildNewUserForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Display Name
+          _buildLabel('Display Name'),
+          TextFormField(
+            controller: _nameController,
+            style: const TextStyle(color: Colors.white),
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              hintText: 'e.g. Siddhi Dheer',
+              prefixIcon: Icon(Icons.person_rounded,
+                  color: CampusTheme.primaryOrange),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your full name';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // 2. Campus Email
+          _buildLabel('Campus Email'),
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'e.g. siddhi@campus.edu',
+              prefixIcon: Icon(Icons.alternate_email_rounded,
+                  color: CampusTheme.softBlue),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your email address';
+              }
+              if (!value.contains('@')) {
+                return 'Please enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // 3. Create Password
+          _buildLabel('Create Password'),
+          TextFormField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'At least 6 characters...',
+              prefixIcon: const Icon(Icons.lock_outline_rounded,
+                  color: CampusTheme.amberOrange),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color: CampusTheme.textMuted,
+                  size: 20,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please create a password';
+              }
+              if (value.length < 6) {
+                return 'Password must be at least 6 characters';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // 4. Department & Year Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Department
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel('Department'),
+                    TextFormField(
+                      controller: _deptController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Department',
+                        prefixIcon: const Icon(Icons.school_rounded,
+                            color: CampusTheme.mint),
+                        suffixIcon: PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down_rounded,
+                              color: CampusTheme.textMuted),
+                          onSelected: (dept) => _deptController.text = dept,
+                          itemBuilder: (ctx) => _commonDepartments
+                              .map((d) => PopupMenuItem(
+                                    value: d,
+                                    child: Text(d),
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Year
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel('Year'),
+                    DropdownButtonFormField<int>(
+                      initialValue: _selectedYear,
+                      dropdownColor: CampusTheme.darkCard,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                      ),
+                      items: [1, 2, 3, 4, 5]
+                          .map((y) => DropdownMenuItem(
+                                value: y,
+                                child: Text('Year $y'),
+                              ))
+                          .toList(),
+                      onChanged: (y) {
+                        if (y != null) {
+                          setState(() => _selectedYear = y);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 5. Bio
+          _buildLabel('Bio (About You)'),
+          TextFormField(
+            controller: _bioController,
+            maxLines: 2,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'A short intro about your projects, skills, or goals...',
+              prefixIcon: Icon(Icons.info_outline_rounded,
+                  color: CampusTheme.lavender),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // 6. Study Subjects
+          _buildLabel('Study Subjects (Tap to select or add)'),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _suggestedSubjects.map((s) {
+              final isSelected = _selectedSubjects.contains(s);
+              return FilterChip(
+                label: Text(s),
+                selected: isSelected,
+                selectedColor: CampusTheme.primaryOrange,
+                checkmarkColor: Colors.white,
+                backgroundColor: CampusTheme.darkCardLight,
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : CampusTheme.textMuted,
+                ),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedSubjects.add(s);
+                    } else {
+                      _selectedSubjects.remove(s);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customSubjectCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    hintText: 'Add custom subject...',
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: () {
+                  final text = _customSubjectCtrl.text.trim();
+                  if (text.isNotEmpty) {
+                    setState(() {
+                      _selectedSubjects.add(text);
+                      _customSubjectCtrl.clear();
+                    });
+                  }
+                },
+                icon: const Icon(Icons.add, size: 18),
+                style: IconButton.styleFrom(
+                  backgroundColor: CampusTheme.primaryOrange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // 7. Interests & Hobbies
+          _buildLabel('Interests & Passions (Connect with peers)'),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _suggestedInterests.map((interest) {
+              final isSelected = _selectedInterests.contains(interest);
+              return FilterChip(
+                label: Text(interest),
+                selected: isSelected,
+                selectedColor: CampusTheme.coral,
+                checkmarkColor: Colors.white,
+                backgroundColor: CampusTheme.darkCardLight,
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : CampusTheme.textMuted,
+                ),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedInterests.add(interest);
+                    } else {
+                      _selectedInterests.remove(interest);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customInterestCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    hintText: 'Add custom interest...',
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: () {
+                  final text = _customInterestCtrl.text.trim();
+                  if (text.isNotEmpty) {
+                    setState(() {
+                      _selectedInterests.add(text);
+                      _customInterestCtrl.clear();
+                    });
+                  }
+                },
+                icon: const Icon(Icons.add, size: 18),
+                style: IconButton.styleFrom(
+                  backgroundColor: CampusTheme.coral,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+
+          // Submit Button: Register & Enter
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _handleRegisterNewUser,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: CampusTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                shadowColor:
+                    CampusTheme.primaryOrange.withValues(alpha: 0.5),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Register & Enter CampusLoop',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, size: 20),
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Switcher to Existing User
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() {
+                _isNewUser = false;
+                _error = null;
+              }),
+              child: RichText(
+                text: const TextSpan(
+                  style: TextStyle(fontSize: 13, color: CampusTheme.textMuted),
+                  children: [
+                    TextSpan(text: 'Already registered? '),
+                    TextSpan(
+                      text: 'Sign In as Existing User',
+                      style: TextStyle(
+                        color: CampusTheme.primaryOrange,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ── EXISTING USER SIGN IN FORM ──
+  // ══════════════════════════════════════════════════════
+  Widget _buildExistingUserForm() {
+    return Form(
+      key: _signInFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Campus Email
+          _buildLabel('Registered Campus Email'),
+          TextFormField(
+            controller: _signInEmailController,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'e.g. siddhi@campus.edu',
+              prefixIcon: Icon(Icons.alternate_email_rounded,
+                  color: CampusTheme.softBlue),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your email address';
+              }
+              if (!value.contains('@')) {
+                return 'Please enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 18),
+
+          // 2. Password
+          _buildLabel('Password'),
+          TextFormField(
+            controller: _signInPasswordController,
+            obscureText: _obscureSignInPassword,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Enter your password...',
+              prefixIcon: const Icon(Icons.lock_outline_rounded,
+                  color: CampusTheme.amberOrange),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureSignInPassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color: CampusTheme.textMuted,
+                  size: 20,
+                ),
+                onPressed: () => setState(
+                    () => _obscureSignInPassword = !_obscureSignInPassword),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your password';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // 3. Remember Me Checkbox
+          Row(
+            children: [
+              Checkbox(
+                value: _rememberMe,
+                activeColor: CampusTheme.primaryOrange,
+                checkColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                onChanged: (val) {
+                  if (val != null) setState(() => _rememberMe = val);
+                },
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: const Text(
+                  'Remember my email & password',
+                  style: TextStyle(
+                    color: CampusTheme.textLight,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Submit Button: Sign In
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _handleExistingUserSignIn,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: CampusTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                shadowColor:
+                    CampusTheme.primaryOrange.withValues(alpha: 0.5),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Sign In to CampusLoop',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.login_rounded, size: 20),
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Switcher to New User
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() {
+                _isNewUser = true;
+                _error = null;
+              }),
+              child: RichText(
+                text: const TextSpan(
+                  style: TextStyle(fontSize: 13, color: CampusTheme.textMuted),
+                  children: [
+                    TextSpan(text: 'New student? '),
+                    TextSpan(
+                      text: 'Create a New Account',
+                      style: TextStyle(
+                        color: CampusTheme.primaryOrange,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
