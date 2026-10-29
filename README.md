@@ -3,7 +3,7 @@
 > **Your Campus. Your Community. One Loop.**  
 > **Team**: HACKTIVATORS  
 > **Track**: Campus Life, Upgraded (Flutter + Serverpod)  
-> **Latest Release**: [CampusLoop Android App v1.0.6](https://github.com/siddhidheer/campusloop/releases/tag/v1.0.6-apk) (`CampusLoop.apk`)
+> **Latest Release**: [CampusLoop Android App v1.0.7](https://github.com/siddhidheer/campusloop/releases/tag/v1.0.7-apk) (`CampusLoop.apk`)
 
 ---
 
@@ -99,11 +99,15 @@ campusloop/
 - **Campus Events**: Upcoming workshops, hackathons, and cultural fests with venues, dates, and times.
 - **Interactive Sheet**: Category filter chips (**All**, **Requests**, **Updates**, **Clubs**, **Events**), "Mark all as read" button, and 1-tap navigation to the corresponding tab.
 
-### 2. Intelligent Study-Partner Matching & Discovery
+### 2. Intelligent Study-Partner Matching & Virtual Study Rooms
 - **Deterministic Subtab Switching**: Keyed `IndexedStack` guarantees 100% reliable, instant switching between **Events** (tab 0) and **Study Partners** (tab 1) from any dashboard shortcut.
 - **Peer Matching**: Subject-based algorithm ranking peers by shared coursework, interest tags, and academic department.
 - **Full Request Lifecycle**: Send Request → Pending ⏳ → Accept ✓ / Decline ✗ with bidirectional synchronization.
-- **Active Connections Directory**: Displays connected peers with matching subjects.
+- **Privacy-First Direct Social Channels**: Students configure Discord ID, LinkedIn, and WhatsApp handles in their profile, which remain securely **locked 🔒** until mutual connection is accepted, at which point direct copy/open actions unlock.
+- **Virtual Study Room & Pomodoro Collab Space**:
+  - **Pomodoro Timer**: 25m Focus, 5m Short Break, 15m Long Break intervals with streak counters.
+  - **Live Video Rooms**: 1-click Google Meet and instant room links with one-tap clipboard copy.
+  - **Study Session Scheduler**: Schedule subject prep dates, times, durations, and physical campus spots or online meeting URLs.
 
 ### 3. Comprehensive Onboarding & Authentication
 - **Dual-Mode Authentication**:

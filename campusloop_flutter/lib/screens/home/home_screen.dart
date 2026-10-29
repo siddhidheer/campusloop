@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
 import '../../models/campus_notification.dart';
+import '../../models/study_collab_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../../widgets/home/notifications_sheet.dart';
 import '../app_shell.dart';
+import '../discover/study_room_screen.dart';
 
 /// Home dashboard — vibrant, personalized CampusLoop landing page.
 ///
@@ -1547,6 +1550,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showPartnerModal(BuildContext context, StudentProfile partner) {
+    final cleanBio = StudentSocials.cleanBio(partner.bio);
+    final partnerSocials = StudentSocials.fromBio(partner.bio);
+
     final isConnected =
         partner.id != null && _connectedProfileIds.contains(partner.id!);
     final isPending =
@@ -1612,7 +1618,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
             const SizedBox(height: 16),
             Text(
-              partner.bio ?? 'CampusLoop student looking to connect with peers.',
+              cleanBio.isNotEmpty
+                  ? cleanBio
+                  : 'CampusLoop student looking to connect with peers.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, color: Colors.white70),
             ),
@@ -1670,86 +1678,255 @@ class _HomeScreenState extends State<HomeScreen> {
                     .toList(),
               ),
             ],
-            const SizedBox(height: 24),
-            if (isConnected)
+            const SizedBox(height: 20),
+            if (isConnected) ...[
+              // Unlocked Social Handles & Contact
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: CampusTheme.mint.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: CampusTheme.mint.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: CampusTheme.mint.withValues(alpha: 0.4),
+                    color: CampusTheme.mint.withValues(alpha: 0.35),
                   ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.check_circle_rounded,
-                        color: CampusTheme.mint, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Connected Partner',
-                      style: TextStyle(
-                        color: CampusTheme.mint,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                    const Row(
+                      children: [
+                        Icon(Icons.lock_open_rounded,
+                            size: 16, color: CampusTheme.mint),
+                        SizedBox(width: 6),
+                        Text(
+                          'Direct Contact Channels (Unlocked 🔓)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: CampusTheme.mint,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (partnerSocials.hasAny) ...[
+                      if (partnerSocials.discord != null &&
+                          partnerSocials.discord!.isNotEmpty)
+                        _modalSocialRow(
+                          context,
+                          Icons.chat_bubble_outline_rounded,
+                          'Discord',
+                          partnerSocials.discord!,
+                        ),
+                      if (partnerSocials.linkedin != null &&
+                          partnerSocials.linkedin!.isNotEmpty)
+                        _modalSocialRow(
+                          context,
+                          Icons.business_center_rounded,
+                          'LinkedIn',
+                          partnerSocials.linkedin!,
+                        ),
+                      if (partnerSocials.whatsapp != null &&
+                          partnerSocials.whatsapp!.isNotEmpty)
+                        _modalSocialRow(
+                          context,
+                          Icons.phone_iphone_rounded,
+                          'WhatsApp',
+                          partnerSocials.whatsapp!,
+                        ),
+                    ] else
+                      const Text(
+                        'This partner has not added external social handles yet.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: CampusTheme.textMuted,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Launch Virtual Study Room
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StudyRoomScreen(
+                          partner: partner,
+                          currentProfile: _profile,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.timer_outlined, size: 20),
+                  label: const Text('⏱️ Launch Virtual Study Room'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: CampusTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              // Locked Social Channels Banner
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: CampusTheme.darkCardLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: CampusTheme.amberOrange.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.lock_outline_rounded,
+                          color: CampusTheme.amberOrange, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Direct Contacts Locked 🔒',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Connect with ${partner.displayName} to unlock Discord, LinkedIn, WhatsApp & Virtual Study Room.',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: CampusTheme.textMuted,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              )
-            else if (isPending)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: CampusTheme.amberOrange.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: CampusTheme.amberOrange.withValues(alpha: 0.4),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Connection Request Pending ⏳',
-                    style: TextStyle(
-                      color: CampusTheme.amberOrange,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+              ),
+              const SizedBox(height: 14),
+              if (isPending)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: CampusTheme.amberOrange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: CampusTheme.amberOrange.withValues(alpha: 0.4),
                     ),
                   ),
-                ),
-              )
-            else if (isIncoming)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _showNotificationsSheet();
-                  },
-                  icon: const Icon(Icons.mail_rounded),
-                  label: const Text('View Connection Request'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: CampusTheme.mint,
+                  child: const Center(
+                    child: Text(
+                      'Connection Request Pending ⏳',
+                      style: TextStyle(
+                        color: CampusTheme.amberOrange,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                )
+              else if (isIncoming)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showNotificationsSheet();
+                    },
+                    icon: const Icon(Icons.mail_rounded),
+                    label: const Text('View Connection Request'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: CampusTheme.mint,
+                    ),
+                  ),
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _sendStudyRequest(partner);
+                    },
+                    icon: const Icon(Icons.person_add_rounded),
+                    label: Text('Connect with ${partner.displayName}'),
                   ),
                 ),
-              )
-            else
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _sendStudyRequest(partner);
-                  },
-                  icon: const Icon(Icons.person_add_rounded),
-                  label: Text('Connect with ${partner.displayName}'),
-                ),
-              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _modalSocialRow(
+      BuildContext context, IconData icon, String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: CampusTheme.darkCardLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: CampusTheme.mint.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: CampusTheme.mint),
+          const SizedBox(width: 8),
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white70,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Colors.white),
+            ),
+          ),
+          IconButton(
+            constraints: const BoxConstraints(),
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.copy_rounded, size: 14),
+            color: CampusTheme.mint,
+            tooltip: 'Copy $label',
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: value));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('📋 $label copied to clipboard!'),
+                  backgroundColor: CampusTheme.mint,
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

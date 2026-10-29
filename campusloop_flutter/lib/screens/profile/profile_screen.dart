@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../auth/login_screen.dart';
+import '../../models/study_collab_models.dart';
 
 /// Student Profile screen — view and edit profile information.
 class ProfileScreen extends StatefulWidget {
@@ -76,14 +78,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showEditProfileDialog() {
     if (_profile == null) return;
 
+    final existingSocials = StudentSocials.fromBio(_profile!.bio);
+    final cleanBio = StudentSocials.cleanBio(_profile!.bio);
+
     final nameCtrl = TextEditingController(text: _profile!.displayName);
     final univCtrl = TextEditingController(text: _university);
     final deptCtrl = TextEditingController(text: _profile!.department ?? '');
-    final bioCtrl = TextEditingController(text: _profile!.bio ?? '');
+    final bioCtrl = TextEditingController(text: cleanBio);
     final subjectsCtrl = TextEditingController(
         text: _profile!.studySubjects.join(', '));
     final interestsCtrl = TextEditingController(
         text: _profile!.interests.join(', '));
+    final discordCtrl =
+        TextEditingController(text: existingSocials.discord ?? '');
+    final linkedinCtrl =
+        TextEditingController(text: existingSocials.linkedin ?? '');
+    final whatsappCtrl =
+        TextEditingController(text: existingSocials.whatsapp ?? '');
     int? year = _profile!.year;
 
     showDialog(
@@ -94,6 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
                   controller: nameCtrl,
@@ -129,14 +141,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 TextField(
                   controller: bioCtrl,
                   maxLines: 2,
-                  decoration: const InputDecoration(labelText: 'Bio'),
+                  decoration: const InputDecoration(
+                    labelText: 'Bio / Study Goals',
+                    hintText: 'Tell peers about your exam prep or study habits',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: subjectsCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Study Subjects',
-                    hintText: 'Comma-separated',
+                    hintText: 'Comma-separated (e.g. DSA, OS, DBMS)',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -144,7 +159,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   controller: interestsCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Interests',
-                    hintText: 'Comma-separated',
+                    hintText: 'Comma-separated (e.g. AI, Web Dev)',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    Icon(Icons.lock_rounded, size: 16, color: CampusTheme.mint),
+                    SizedBox(width: 6),
+                    Text(
+                      'Partner Contact Channels',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: CampusTheme.mint,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Only revealed to your accepted study partners for coordination.',
+                  style: TextStyle(fontSize: 11, color: CampusTheme.textMuted),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: discordCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Discord ID / Tag',
+                    hintText: 'e.g. siddhi#1234 or @siddhi',
+                    prefixIcon: Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: linkedinCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'LinkedIn Profile URL / Handle',
+                    hintText: 'e.g. linkedin.com/in/siddhi',
+                    prefixIcon: Icon(Icons.business_center_rounded, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: whatsappCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'WhatsApp / Phone (Optional)',
+                    hintText: 'e.g. +91 9876543210',
+                    prefixIcon: Icon(Icons.phone_iphone_rounded, size: 18),
                   ),
                 ),
               ],
@@ -159,14 +223,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () async {
                 try {
                   final newUniv = univCtrl.text.trim();
+                  final updatedSocials = StudentSocials(
+                    discord: discordCtrl.text.trim().isNotEmpty
+                        ? discordCtrl.text.trim()
+                        : null,
+                    linkedin: linkedinCtrl.text.trim().isNotEmpty
+                        ? linkedinCtrl.text.trim()
+                        : null,
+                    whatsapp: whatsappCtrl.text.trim().isNotEmpty
+                        ? whatsappCtrl.text.trim()
+                        : null,
+                  );
+
+                  final rawBio = StudentSocials.embedInBio(
+                    bioCtrl.text.trim(),
+                    updatedSocials,
+                  );
+
                   _profile!
                     ..displayName = nameCtrl.text.trim()
                     ..department = deptCtrl.text.trim().isNotEmpty
                         ? deptCtrl.text.trim()
                         : null
                     ..year = year
-                    ..bio =
-                        bioCtrl.text.trim().isNotEmpty ? bioCtrl.text.trim() : null
+                    ..bio = rawBio.isNotEmpty ? rawBio : null
                     ..studySubjects = subjectsCtrl.text
                         .split(',')
                         .map((s) => s.trim())
@@ -180,12 +260,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   await client.profile.updateProfile(_profile!);
 
-                  // Persist updated university
+                  // Persist updated university and local socials
                   try {
                     final prefs = await SharedPreferences.getInstance();
                     if (_profile?.email != null) {
                       await prefs.setString(
                           'university_${_profile!.email}', newUniv);
+                      await StudentSocials.saveLocalSocials(
+                          _profile!.email, updatedSocials);
                     }
                     await prefs.setString('current_university', newUniv);
                   } catch (_) {}
@@ -480,6 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           _buildProfileHeader(),
                           _buildInfoSection(),
+                          _buildSocialHandlesSection(),
                           _buildSubjectsSection(),
                           _buildInterestsSection(),
                           _buildCommunitiesSection(),
@@ -567,6 +650,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    final cleanBio = StudentSocials.cleanBio(_profile?.bio);
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(24),
@@ -615,10 +700,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: CampusTheme.textMuted,
             ),
           ),
-          if (_profile!.bio != null && _profile!.bio!.isNotEmpty) ...[
+          if (cleanBio.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              _profile!.bio!,
+              cleanBio,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -737,6 +822,152 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialHandlesSection() {
+    final socials = StudentSocials.fromBio(_profile?.bio);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.hub_rounded,
+                    color: CampusTheme.mint, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Direct Contact & Socials',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: CampusTheme.textLight,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: CampusTheme.mint.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.lock_open_rounded,
+                          size: 11, color: CampusTheme.mint),
+                      SizedBox(width: 4),
+                      Text(
+                        'Connected Only',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: CampusTheme.mint,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Private channels revealed only to students whose study partner requests you accept.',
+              style: TextStyle(fontSize: 12, color: CampusTheme.textMuted),
+            ),
+            const SizedBox(height: 14),
+            _socialRow(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: 'Discord',
+              value: socials.discord,
+              emptyHint: 'Not set (tap Edit Profile)',
+            ),
+            const SizedBox(height: 10),
+            _socialRow(
+              icon: Icons.business_center_rounded,
+              label: 'LinkedIn',
+              value: socials.linkedin,
+              emptyHint: 'Not set (tap Edit Profile)',
+            ),
+            const SizedBox(height: 10),
+            _socialRow(
+              icon: Icons.phone_iphone_rounded,
+              label: 'WhatsApp',
+              value: socials.whatsapp,
+              emptyHint: 'Not set (tap Edit Profile)',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _socialRow({
+    required IconData icon,
+    required String label,
+    required String? value,
+    required String emptyHint,
+  }) {
+    final hasVal = value != null && value.trim().isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: CampusTheme.darkCardLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: hasVal
+              ? CampusTheme.mint.withValues(alpha: 0.3)
+              : Colors.white10,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon,
+              size: 18,
+              color: hasVal ? CampusTheme.mint : CampusTheme.textMuted),
+          const SizedBox(width: 10),
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white70,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              hasVal ? value : emptyHint,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: hasVal ? Colors.white : CampusTheme.textMuted,
+                fontStyle: hasVal ? FontStyle.normal : FontStyle.italic,
+              ),
+            ),
+          ),
+          if (hasVal)
+            IconButton(
+              icon: const Icon(Icons.copy_rounded, size: 14),
+              color: CampusTheme.textMuted,
+              tooltip: 'Copy $label',
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('📋 $label copied to clipboard!'),
+                    backgroundColor: CampusTheme.mint,
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
+import '../../models/study_collab_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
+import 'study_room_screen.dart';
 
 /// Discover screen — Events and Study Partners.
 class DiscoverScreen extends StatefulWidget {
@@ -1492,7 +1495,7 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       itemCount: _connections.length,
       itemBuilder: (ctx, i) {
         final conn = _connections[i];
@@ -1505,53 +1508,217 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
           builder: (ctx, snap) {
             final profile = snap.data;
             final name = profile?.displayName ?? 'Student';
+            final partnerSocials = StudentSocials.fromBio(profile?.bio);
 
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor:
-                      CampusTheme.mint.withValues(alpha: 0.2),
-                  child: Text(
-                    name[0],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: CampusTheme.mint,
-                    ),
-                  ),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              color: CampusTheme.darkCard,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: CampusTheme.mint.withValues(alpha: 0.35),
                 ),
-                title: Text(name,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: conn.matchingSubjects.isNotEmpty
-                    ? Text(
-                        conn.matchingSubjects.join(', '),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor:
+                              CampusTheme.mint.withValues(alpha: 0.2),
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : 'S',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: CampusTheme.mint,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              if (profile?.department != null)
+                                Text(
+                                  '${profile!.department} · Year ${profile.year ?? 1}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: CampusTheme.textMuted,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: CampusTheme.mint.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_rounded,
+                                  size: 13, color: CampusTheme.mint),
+                              SizedBox(width: 4),
+                              Text(
+                                'Connected',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: CampusTheme.mint,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (conn.matchingSubjects.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'Shared Subjects: ${conn.matchingSubjects.join(', ')}',
                         style: const TextStyle(
                           fontSize: 12,
-                          color: CampusTheme.textMuted,
+                          fontWeight: FontWeight.w600,
+                          color: CampusTheme.primaryOrange,
                         ),
-                      )
-                    : null,
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: CampusTheme.mint.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Connected',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: CampusTheme.mint,
-                      fontWeight: FontWeight.w500,
+                      ),
+                    ],
+                    // Unlocked direct contacts bar
+                    if (partnerSocials.hasAny) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          if (partnerSocials.discord != null &&
+                              partnerSocials.discord!.isNotEmpty)
+                            _contactChip(
+                              context,
+                              Icons.chat_bubble_outline_rounded,
+                              'Discord',
+                              partnerSocials.discord!,
+                            ),
+                          if (partnerSocials.linkedin != null &&
+                              partnerSocials.linkedin!.isNotEmpty)
+                            _contactChip(
+                              context,
+                              Icons.business_center_rounded,
+                              'LinkedIn',
+                              partnerSocials.linkedin!,
+                            ),
+                          if (partnerSocials.whatsapp != null &&
+                              partnerSocials.whatsapp!.isNotEmpty)
+                            _contactChip(
+                              context,
+                              Icons.phone_iphone_rounded,
+                              'WhatsApp',
+                              partnerSocials.whatsapp!,
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    // Action button: Launch Virtual Study Room
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: profile == null
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => StudyRoomScreen(
+                                      partner: profile,
+                                      currentProfile: _myProfile,
+                                      initialSubject:
+                                          conn.matchingSubjects.isNotEmpty
+                                              ? conn.matchingSubjects.first
+                                              : null,
+                                    ),
+                                  ),
+                                );
+                              },
+                        icon: const Icon(Icons.timer_outlined, size: 18),
+                        label: const Text('⏱️ Launch Virtual Study Room'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: CampusTheme.primaryOrange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _contactChip(
+      BuildContext context, IconData icon, String label, String value) {
+    return InkWell(
+      onTap: () {
+        Clipboard.setData(ClipboardData(text: value));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📋 $label copied: $value'),
+            backgroundColor: CampusTheme.mint,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: CampusTheme.darkCardLight,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: CampusTheme.mint.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: CampusTheme.mint),
+            const SizedBox(width: 6),
+            Text(
+              '$label: $value',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.copy_rounded, size: 12, color: CampusTheme.mint),
+          ],
+        ),
+      ),
     );
   }
 }
