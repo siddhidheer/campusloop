@@ -4,7 +4,7 @@
 **Team**: HACKTIVATORS  
 **Track**: Campus Life, Upgraded (Flutter + Serverpod)  
 **Status**: COMPLETE — ALL DELIVERABLES MET & VERIFIED LOCALLY AND ON CLOUD  
-**Latest Release**: [CampusLoop Android App v1.0.4](https://github.com/siddhidheer/campusloop/releases/tag/v1.0.4-apk) (`CampusLoop.apk`)
+**Latest Release**: [CampusLoop Android App v1.0.5](https://github.com/siddhidheer/campusloop/releases/tag/v1.0.5-apk) (`CampusLoop.apk`)
 
 ---
 

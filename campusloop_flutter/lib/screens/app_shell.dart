@@ -40,6 +40,9 @@ class _AppShellState extends State<AppShell> {
 
   void setTab(int index, {int? subTab}) {
     if (mounted && index >= 0 && index < 5) {
+      if (index == 0 && _currentIndex != 0) {
+        HomeScreen.refreshNotifier.value++;
+      }
       setState(() {
         _currentIndex = index;
         if (subTab != null) {
@@ -78,7 +81,12 @@ class _AppShellState extends State<AppShell> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: (index) {
+            if (index == 0 && _currentIndex != 0) {
+              HomeScreen.refreshNotifier.value++;
+            }
+            setState(() => _currentIndex = index);
+          },
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),

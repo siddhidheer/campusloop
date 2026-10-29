@@ -15,6 +15,9 @@ import '../app_shell.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  /// Global notifier to trigger a refresh when returning to Home tab
+  static final ValueNotifier<int> refreshNotifier = ValueNotifier<int>(0);
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -28,6 +31,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _error;
 
+  // ── Connection Status Tracking ──
+  Set<int> _connectedProfileIds = {};
+  Set<int> _outgoingPendingIds = {};
+  Set<int> _incomingPendingIds = {};
+
   // ── Notifications Center State ──
   List<CampusNotification> _notifications = [];
   int _unreadNotificationCount = 0;
@@ -36,7 +44,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    HomeScreen.refreshNotifier.addListener(_onHomeRefreshTrigger);
     _loadDashboard();
+  }
+
+  void _onHomeRefreshTrigger() {
+    if (mounted) {
+      _loadDashboard();
+    }
+  }
+
+  @override
+  void dispose() {
+    HomeScreen.refreshNotifier.removeListener(_onHomeRefreshTrigger);
+    super.dispose();
   }
 
   Future<void> _loadDashboard() async {
@@ -56,25 +77,64 @@ class _HomeScreenState extends State<HomeScreen> {
           client.community.listCommunities(limit: 4, offset: 0);
       final updatesFuture =
           client.campusUpdate.listUpdates(limit: 3, offset: 0);
+      final connectionsFuture = currentProfileId != null
+          ? client.studyPartner.getConnections(currentProfileId!)
+          : Future.value(<StudyPartnerRequest>[]);
+      final outgoingFuture = currentProfileId != null
+          ? client.studyPartner.getOutgoingRequests(currentProfileId!)
+          : Future.value(<StudyPartnerRequest>[]);
+      final incomingFuture = currentProfileId != null
+          ? client.studyPartner.getIncomingRequests(currentProfileId!)
+          : Future.value(<StudyPartnerRequest>[]);
 
       final results = await Future.wait([
         profileFuture,
         eventsFuture,
         communitiesFuture,
         updatesFuture,
+        connectionsFuture,
+        outgoingFuture,
+        incomingFuture,
       ]);
 
       _profile = results[0] as StudentProfile?;
       _upcomingEvents = results[1] as List<CampusEvent>;
       _communities = results[2] as List<Community>;
       _latestUpdates = results[3] as List<CampusUpdate>;
+      final connections = results[4] as List<StudyPartnerRequest>;
+      final outgoingRequests = results[5] as List<StudyPartnerRequest>;
+      final incomingRequests = results[6] as List<StudyPartnerRequest>;
 
-      // Load peers matching shared interests, subjects, or department
+      _connectedProfileIds = connections
+          .map((c) => c.fromProfileId == currentProfileId
+              ? c.toProfileId
+              : c.fromProfileId)
+          .toSet();
+      _outgoingPendingIds =
+          outgoingRequests.map((r) => r.toProfileId).toSet();
+      _incomingPendingIds =
+          incomingRequests.map((r) => r.fromProfileId).toSet();
+
+      final excludedIds = {
+        if (currentProfileId != null) currentProfileId!,
+        ..._connectedProfileIds,
+        ..._outgoingPendingIds,
+        ..._incomingPendingIds,
+      };
+
+      // Load peers matching shared interests, subjects, or department,
+      // excluding already connected peers, pending requests, and test accounts
       try {
         final allProfiles =
-            await client.profile.listProfiles(limit: 30, offset: 0);
+            await client.profile.listProfiles(limit: 50, offset: 0);
         final otherProfiles = allProfiles
-            .where((p) => p.id != null && p.id != currentProfileId)
+            .where((p) =>
+                p.id != null &&
+                !excludedIds.contains(p.id) &&
+                !p.displayName.toLowerCase().contains('serverpod') &&
+                !p.displayName.toLowerCase().contains('statuscode') &&
+                !p.displayName.toLowerCase().contains('internal server error') &&
+                !p.displayName.toLowerCase().contains('exception'))
             .toList();
 
         otherProfiles.sort((a, b) {
@@ -114,24 +174,17 @@ class _HomeScreenState extends State<HomeScreen> {
         _suggestedPartners = [];
       }
 
-      // Fetch live incoming connection requests & build notifications feed
-      List<StudyPartnerRequest> incomingRequests = [];
-      if (currentProfileId != null) {
-        try {
-          incomingRequests =
-              await client.studyPartner.getIncomingRequests(currentProfileId!);
-          for (final req in incomingRequests) {
-            if (!_senderProfileCache.containsKey(req.fromProfileId)) {
-              try {
-                final sender =
-                    await client.profile.getProfile(req.fromProfileId);
-                if (sender != null) {
-                  _senderProfileCache[req.fromProfileId] = sender;
-                }
-              } catch (_) {}
+      // Fetch live sender profiles for incoming requests & build notifications feed
+      for (final req in incomingRequests) {
+        if (!_senderProfileCache.containsKey(req.fromProfileId)) {
+          try {
+            final sender =
+                await client.profile.getProfile(req.fromProfileId);
+            if (sender != null) {
+              _senderProfileCache[req.fromProfileId] = sender;
             }
-          }
-        } catch (_) {}
+          } catch (_) {}
+        }
       }
 
       await _buildNotificationsList(incomingRequests);
@@ -143,6 +196,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _error = e.toString();
           _isLoading = false;
         });
+      }
+    }
+  }
       }
     }
   }
@@ -178,13 +234,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 2. Campus Updates (new announcements and notices)
     for (final update in _latestUpdates) {
+      final cleanTitle = cleanCampusTitle(update.title);
+      final cleanContent = cleanCampusTitle(update.content);
       list.add(
         CampusNotification(
           id: 'update_${update.id}',
           category: NotificationCategory.campusUpdate,
-          title: update.title,
+          title: cleanTitle,
           message:
-              '${update.category.toUpperCase()} · ${update.content.length > 90 ? '${update.content.substring(0, 90)}...' : update.content}',
+              '${update.category.toUpperCase()} · ${cleanContent.length > 90 ? '${cleanContent.substring(0, 90)}...' : cleanContent}',
           timestamp: update.publishedAt ?? update.createdAt,
           targetId: update.id,
           updatePayload: update,
@@ -194,11 +252,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 3. Club Activities (clubs and student communities)
     for (final comm in _communities) {
+      final cleanName = cleanCampusTitle(comm.name);
       list.add(
         CampusNotification(
           id: 'club_${comm.id}',
           category: NotificationCategory.clubActivity,
-          title: 'Club: ${comm.name}',
+          title: 'Club: $cleanName',
           message:
               '${comm.category} · ${comm.memberCount} members active. Tap to view discussions and new activities.',
           timestamp: comm.updatedAt,
@@ -210,11 +269,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 4. Campus Events (workshops, hackathons, cultural fests)
     for (final event in _upcomingEvents) {
+      final cleanTitle = cleanCampusTitle(event.title);
       list.add(
         CampusNotification(
           id: 'event_${event.id}',
           category: NotificationCategory.event,
-          title: 'Upcoming Event: ${event.title}',
+          title: 'Upcoming Event: $cleanTitle',
           message:
               '${event.category} · Venue: ${event.venue} on ${event.dateTime.day}/${event.dateTime.month} at ${event.dateTime.hour}:${event.dateTime.minute.toString().padLeft(2, '0')}.',
           timestamp: event.createdAt,
@@ -312,6 +372,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       if (mounted) {
         setState(() {
+          _connectedProfileIds.add(req.fromProfileId);
+          _suggestedPartners.removeWhere((p) => p.id == req.fromProfileId);
           _unreadNotificationCount =
               _notifications.where((n) => !n.isRead).length;
         });
@@ -392,6 +454,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _sendStudyRequest(StudentProfile partner) async {
     if (currentProfileId == null || partner.id == null) return;
+
+    // Check if already connected
+    if (_connectedProfileIds.contains(partner.id)) {
+      if (mounted) {
+        setState(() {
+          _suggestedPartners.removeWhere((p) => p.id == partner.id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ You are already connected with ${partner.displayName}!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.mint,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Check if already pending
+    if (_outgoingPendingIds.contains(partner.id)) {
+      if (mounted) {
+        setState(() {
+          _suggestedPartners.removeWhere((p) => p.id == partner.id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⏳ Connection request to ${partner.displayName} is already pending.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.amberOrange,
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       await client.studyPartner.sendRequest(
         currentProfileId!,
@@ -399,6 +496,10 @@ class _HomeScreenState extends State<HomeScreen> {
         'Hi ${partner.displayName}, let\'s connect on CampusLoop!',
       );
       if (mounted) {
+        setState(() {
+          _outgoingPendingIds.add(partner.id!);
+          _suggestedPartners.removeWhere((p) => p.id == partner.id);
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('🎉 Connection request sent to ${partner.displayName}!'),
@@ -408,13 +509,44 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('already connected')) {
+        if (mounted) {
+          setState(() {
+            _connectedProfileIds.add(partner.id!);
+            _suggestedPartners.removeWhere((p) => p.id == partner.id);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ You are already connected with ${partner.displayName}!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: CampusTheme.mint,
+            ),
+          );
+        }
+      } else if (msg.contains('pending request already exists')) {
+        if (mounted) {
+          setState(() {
+            _outgoingPendingIds.add(partner.id!);
+            _suggestedPartners.removeWhere((p) => p.id == partner.id);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('⏳ Request is already pending with ${partner.displayName}!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: CampusTheme.amberOrange,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }
@@ -973,6 +1105,10 @@ class _HomeScreenState extends State<HomeScreen> {
       matchLabel = partner.department ?? 'Campus Peer';
     }
 
+    final isConnected = partner.id != null && _connectedProfileIds.contains(partner.id!);
+    final isPending = partner.id != null && _outgoingPendingIds.contains(partner.id!);
+    final isIncoming = partner.id != null && _incomingPendingIds.contains(partner.id!);
+
     return Container(
       width: 165,
       margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -1030,28 +1166,104 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  height: 28,
-                  child: ElevatedButton(
-                    onPressed: () => _sendStudyRequest(partner),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      backgroundColor: CampusTheme.primaryOrange,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                if (isConnected)
+                  Container(
+                    width: double.infinity,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: CampusTheme.mint.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: CampusTheme.mint.withValues(alpha: 0.35),
+                        width: 0.8,
                       ),
                     ),
-                    child: const Text(
-                      'Connect',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_rounded,
+                            size: 13, color: CampusTheme.mint),
+                        SizedBox(width: 4),
+                        Text(
+                          'Connected',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: CampusTheme.mint,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (isPending)
+                  Container(
+                    width: double.infinity,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: CampusTheme.amberOrange.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: CampusTheme.amberOrange.withValues(alpha: 0.35),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Pending ⏳',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: CampusTheme.amberOrange,
+                        ),
+                      ),
+                    ),
+                  )
+                else if (isIncoming)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 28,
+                    child: ElevatedButton(
+                      onPressed: _showNotificationsSheet,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: CampusTheme.mint,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Respond',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    height: 28,
+                    child: ElevatedButton(
+                      onPressed: () => _sendStudyRequest(partner),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: CampusTheme.primaryOrange,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Connect',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -1327,6 +1539,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showPartnerModal(BuildContext context, StudentProfile partner) {
+    final isConnected =
+        partner.id != null && _connectedProfileIds.contains(partner.id!);
+    final isPending =
+        partner.id != null && _outgoingPendingIds.contains(partner.id!);
+    final isIncoming =
+        partner.id != null && _incomingPendingIds.contains(partner.id!);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1339,6 +1558,17 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
             CircleAvatar(
               radius: 36,
               backgroundColor: CampusTheme.primaryOrange.withValues(alpha: 0.2),
@@ -1433,17 +1663,83 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _sendStudyRequest(partner);
-                },
-                icon: const Icon(Icons.person_add_rounded),
-                label: Text('Connect with ${partner.displayName}'),
+            if (isConnected)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: CampusTheme.mint.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: CampusTheme.mint.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_rounded,
+                        color: CampusTheme.mint, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Connected Partner',
+                      style: TextStyle(
+                        color: CampusTheme.mint,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (isPending)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: CampusTheme.amberOrange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: CampusTheme.amberOrange.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Connection Request Pending ⏳',
+                    style: TextStyle(
+                      color: CampusTheme.amberOrange,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
+            else if (isIncoming)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showNotificationsSheet();
+                  },
+                  icon: const Icon(Icons.mail_rounded),
+                  label: const Text('View Connection Request'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: CampusTheme.mint,
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _sendStudyRequest(partner);
+                  },
+                  icon: const Icon(Icons.person_add_rounded),
+                  label: Text('Connect with ${partner.displayName}'),
+                ),
               ),
-            ),
           ],
         ),
       ),

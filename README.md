@@ -3,7 +3,7 @@
 > **Your Campus. Your Community. One Loop.**  
 > **Team**: HACKTIVATORS  
 > **Track**: Campus Life, Upgraded (Flutter + Serverpod)  
-> **Latest Release**: [CampusLoop Android App v1.0.4](https://github.com/siddhidheer/campusloop/releases/tag/v1.0.4-apk) (`CampusLoop.apk`)
+> **Latest Release**: [CampusLoop Android App v1.0.5](https://github.com/siddhidheer/campusloop/releases/tag/v1.0.5-apk) (`CampusLoop.apk`)
 
 ---
 

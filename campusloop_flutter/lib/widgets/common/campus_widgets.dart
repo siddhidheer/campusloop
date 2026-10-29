@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../theme/campus_theme.dart';
 
-/// Clean any legacy "[SAMPLE]" text from titles.
+/// Clean any legacy "[SAMPLE]" text from titles, descriptions, and notifications.
 String cleanCampusTitle(String title) {
-  return title.replaceAll(RegExp(r'^\[SAMPLE\]\s*', caseSensitive: false), '').trim();
+  return title
+      .replaceAll(RegExp(r'\[\s*SAMPLE\s*\][\s:\-–—]*', caseSensitive: false), '')
+      .replaceAll(RegExp(r'\(\s*SAMPLE\s*\)[\s:\-–—]*', caseSensitive: false), '')
+      .replaceAll(RegExp(r'\{\s*SAMPLE\s*\}[\s:\-–—]*', caseSensitive: false), '')
+      .replaceAll(RegExp(r'\bSAMPLE[\s:\-–—]+', caseSensitive: false), '')
+      .trim();
 }
 
 /// Official CampusLoop Orange Infinity Brand Logo.

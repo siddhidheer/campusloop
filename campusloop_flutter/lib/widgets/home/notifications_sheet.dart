@@ -366,7 +366,7 @@ class _NotificationsSheetState extends State<NotificationsSheet> {
 
                       // Title
                       Text(
-                        item.title,
+                        cleanCampusTitle(item.title),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: item.isRead ? FontWeight.w600 : FontWeight.w700,
@@ -377,7 +377,7 @@ class _NotificationsSheetState extends State<NotificationsSheet> {
 
                       // Message
                       Text(
-                        item.message,
+                        cleanCampusTitle(item.message),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
