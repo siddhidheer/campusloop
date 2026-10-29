@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
+import '../../models/study_collab_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../app_shell.dart';
@@ -40,6 +41,9 @@ class _LoginScreenState extends State<LoginScreen>
       TextEditingController(text: 'Computer Science & Engineering');
   final _bioController = TextEditingController(
       text: 'CampusLoop student passionate about technology and collaboration.');
+  final _discordController = TextEditingController();
+  final _linkedinController = TextEditingController();
+  final _whatsappController = TextEditingController();
   int _selectedYear = 1;
   bool _obscurePassword = true;
 
@@ -174,6 +178,9 @@ class _LoginScreenState extends State<LoginScreen>
     _universityController.dispose();
     _deptController.dispose();
     _bioController.dispose();
+    _discordController.dispose();
+    _linkedinController.dispose();
+    _whatsappController.dispose();
     _customSubjectCtrl.dispose();
     _customInterestCtrl.dispose();
     _signInEmailController.dispose();
@@ -418,6 +425,19 @@ class _LoginScreenState extends State<LoginScreen>
         return;
       }
 
+      final socials = StudentSocials(
+        discord: _discordController.text.trim().isNotEmpty
+            ? _discordController.text.trim()
+            : null,
+        linkedin: _linkedinController.text.trim().isNotEmpty
+            ? _linkedinController.text.trim()
+            : null,
+        whatsapp: _whatsappController.text.trim().isNotEmpty
+            ? _whatsappController.text.trim()
+            : null,
+      );
+      final rawBio = StudentSocials.embedInBio(bio, socials);
+
       // Create new profile on Serverpod Cloud database
       final now = DateTime.now();
       StudentProfile? newProfile;
@@ -428,7 +448,7 @@ class _LoginScreenState extends State<LoginScreen>
             email: email,
             department: dept.isNotEmpty ? dept : 'General Studies',
             year: _selectedYear,
-            bio: bio.isNotEmpty ? bio : 'CampusLoop student from $dept',
+            bio: rawBio.isNotEmpty ? rawBio : 'CampusLoop student from $dept',
             studySubjects: _selectedSubjects.toList(),
             interests: _selectedInterests.toList(),
             createdAt: now,
@@ -489,6 +509,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
       await prefs.setString('saved_login_email', email);
       await prefs.setString('saved_login_pwd', password);
+      await StudentSocials.saveLocalSocials(email, socials);
 
       currentProfileId = newProfile?.id ?? 1;
 
@@ -1500,6 +1521,76 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 20),
+
+          // 8. Study Partner Direct Channels (Optional - Revealed Only to Connected Peers)
+          _buildLabel('Partner Contact Channels (Optional)'),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: CampusTheme.darkCardLight,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: CampusTheme.mint.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.lock_outline_rounded,
+                        size: 16, color: CampusTheme.mint),
+                    SizedBox(width: 6),
+                    Text(
+                      'Private & Safe (Connected Peers Only)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: CampusTheme.mint,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'These handles remain hidden and will ONLY be revealed to students whose study partner request you accept.',
+                  style: TextStyle(fontSize: 11, color: CampusTheme.textMuted),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _discordController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'Discord ID / Tag',
+                    hintText: 'e.g. siddhi#1234 or @siddhi',
+                    prefixIcon:
+                        Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _linkedinController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'LinkedIn Profile URL / Handle',
+                    hintText: 'e.g. linkedin.com/in/siddhi',
+                    prefixIcon: Icon(Icons.business_center_rounded, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _whatsappController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'WhatsApp / Phone (Optional)',
+                    hintText: 'e.g. +91 9876543210',
+                    prefixIcon: Icon(Icons.phone_iphone_rounded, size: 18),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 28),
 
