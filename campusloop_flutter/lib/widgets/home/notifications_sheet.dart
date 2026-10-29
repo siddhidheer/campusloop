@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/campus_notification.dart';
 import '../../theme/campus_theme.dart';
 import '../common/campus_widgets.dart';

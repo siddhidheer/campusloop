@@ -467,6 +467,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onRefresh: _loadProfile,
                       child: ListView(
                         children: [
+                          CampusFeatureBanner(
+                            imageAsset: 'assets/images/profile_banner.jpg',
+                            fallbackAsset: 'assets/images/campus_hero.jpg',
+                            tag: 'Student Identity',
+                            tagColor: CampusTheme.mint,
+                            title: 'Academic Passport',
+                            subtitle:
+                                'Your verified university records, department enrollments, and peer network.',
+                            actionLabel: 'Edit Profile ✏️',
+                            onAction: _showEditProfileDialog,
+                          ),
                           _buildProfileHeader(),
                           _buildInfoSection(),
                           _buildSubjectsSection(),

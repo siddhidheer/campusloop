@@ -639,6 +639,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       _buildWelcomeSection(),
+                      CampusFeatureBanner(
+                        imageAsset: 'assets/images/home_banner.jpg',
+                        fallbackAsset: 'assets/images/campus_hero.jpg',
+                        tag: 'Campus Pulse',
+                        tagColor: const Color(0xFF00E676),
+                        title: 'Campus Life, Upgraded',
+                        subtitle:
+                            'Discover student clubs, live hackathons, and connect with peer study partners.',
+                        actionLabel: 'Explore Campus',
+                        onAction: () => AppShell.switchTab(context, 1),
+                      ),
                       _buildQuickActions(),
                       _buildUpcomingEvents(),
                       _buildStudyPartners(),

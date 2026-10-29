@@ -1,4 +1,4 @@
-import 'package:campusloop_client/campusloop_client.dart';
+﻿import 'package:campusloop_client/campusloop_client.dart';
 
 enum NotificationCategory {
   connectionRequest,

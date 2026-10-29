@@ -268,6 +268,19 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       ),
       body: Column(
         children: [
+          // Feature Hero Banner
+          CampusFeatureBanner(
+            imageAsset: 'assets/images/communities_banner.jpg',
+            fallbackAsset: 'assets/images/event_cultural.jpg',
+            tag: 'Student Clubs & Hubs',
+            tagColor: CampusTheme.mint,
+            title: 'Campus Communities',
+            subtitle:
+                'Collaborate with coding clubs, design guilds, robotics labs, and media teams.',
+            actionLabel: 'Create Club +',
+            onAction: _showCreateCommunityDialog,
+          ),
+
           // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

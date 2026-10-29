@@ -324,6 +324,19 @@ class _EventsTabState extends State<_EventsTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Feature Hero Banner
+        CampusFeatureBanner(
+          imageAsset: 'assets/images/events_banner.jpg',
+          fallbackAsset: 'assets/images/event_tech.jpg',
+          tag: 'Hackathons & Grand Fests',
+          tagColor: CampusTheme.coral,
+          title: 'Campus Events & Workshops',
+          subtitle:
+              'Join tech sprints, guest seminars, and cultural festivals happening across blocks.',
+          actionLabel: 'Host an Event +',
+          onAction: _showCreateEventDialog,
+        ),
+
         // Search bar
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -1015,6 +1028,19 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
 
     return Column(
       children: [
+        // Feature Hero Banner
+        CampusFeatureBanner(
+          imageAsset: 'assets/images/partners_banner.jpg',
+          fallbackAsset: 'assets/images/campus_hero.jpg',
+          tag: 'Peer Radar Active',
+          tagColor: CampusTheme.mint,
+          title: 'Find Your Study Partner',
+          subtitle:
+              'Match with classmates sharing your subjects, coding interests, and project goals.',
+          actionLabel: 'Manage Requests',
+          onAction: () => setState(() => _selectedTab = 1),
+        ),
+
         // Search bar
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),

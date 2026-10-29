@@ -291,6 +291,19 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
       ),
       body: Column(
         children: [
+          // Feature Hero Banner
+          CampusFeatureBanner(
+            imageAsset: 'assets/images/updates_banner.jpg',
+            fallbackAsset: 'assets/images/campus_hero.jpg',
+            tag: 'Official Campus Board',
+            tagColor: CampusTheme.lavender,
+            title: 'Verified Announcements',
+            subtitle:
+                'Get official alerts for exam schedules, campus Wi-Fi upgrades, and student opportunities.',
+            actionLabel: 'Publish Notice +',
+            onAction: _showCreateUpdateDialog,
+          ),
+
           // Category filter
           if (_categories.isNotEmpty)
             Padding(

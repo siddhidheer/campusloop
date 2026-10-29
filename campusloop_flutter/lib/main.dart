@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import 'screens/auth/login_screen.dart';
