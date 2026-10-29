@@ -199,9 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
   }
-      }
-    }
-  }
 
   Future<void> _buildNotificationsList(
       List<StudyPartnerRequest> incomingRequests) async {
