@@ -7,6 +7,7 @@ import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../auth/login_screen.dart';
 import '../../models/study_collab_models.dart';
+import '../../models/campus_safety_models.dart';
 
 /// Student Profile screen — view and edit profile information.
 class ProfileScreen extends StatefulWidget {
@@ -567,11 +568,337 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildInterestsSection(),
                           _buildCommunitiesSection(),
                           _buildConnectionsSection(),
+                          _buildCampusSafetySection(),
                           _buildDangerZoneSection(),
                           const SizedBox(height: 32),
                         ],
                       ),
                     ),
+    );
+  }
+
+  /// Campus Trust, Safety & Moderation section featuring Guidelines, Blocked Students & Reports tracker
+  Widget _buildCampusSafetySection() {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: CampusTheme.mint.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      color: CampusTheme.darkCard,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: CampusTheme.mint.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.security_rounded,
+                    color: CampusTheme.mint,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Campus Trust & Safety',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'Verified affiliation, guidelines, moderation & privacy',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: CampusTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 1. Campus Guidelines Tile
+            InkWell(
+              onTap: () => CampusSafetyManager.showCommunityGuidelines(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: CampusTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.gavel_rounded,
+                        color: CampusTheme.mint, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Campus Community Guidelines',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Zero-tolerance harassment policy & safe study meetup rules',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: CampusTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right,
+                        color: CampusTheme.textMuted, size: 20),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // 2. Blocked Students Manager
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: CampusSafetyManager.getBlockedUsersWithNames(
+                  currentProfileId ?? 1),
+              builder: (ctx, snap) {
+                final blockedList = snap.data ?? [];
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: CampusTheme.darkSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.block_rounded,
+                              color: CampusTheme.coral, size: 18),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Blocked Students (${blockedList.length})',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (blockedList.isEmpty) ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          'No students currently blocked. You can block any harassing account from their profile card.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: CampusTheme.textMuted,
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 8),
+                        ...blockedList.map((item) {
+                          final targetId = item['id'] as int;
+                          final targetName = item['name'] as String;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.person_off_rounded,
+                                    size: 14, color: CampusTheme.coral),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    targetName,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: CampusTheme.textLight,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    await CampusSafetyManager.unblockUser(
+                                        currentProfileId ?? 1, targetId);
+                                    setState(() {});
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content:
+                                              Text('✓ $targetName unblocked.'),
+                                          behavior: SnackBarBehavior.floating,
+                                          backgroundColor: CampusTheme.mint,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Unblock',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: CampusTheme.mint,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // 3. Submitted Safety Reports Tracker
+            FutureBuilder<List<CampusReport>>(
+              future: CampusReport.loadReports(currentProfileId ?? 1),
+              builder: (ctx, snap) {
+                final reports = snap.data ?? [];
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: CampusTheme.darkSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.shield_outlined,
+                              color: CampusTheme.softBlue, size: 18),
+                          const SizedBox(width: 10),
+                          Text(
+                            'My Submitted Moderation Cases (${reports.length})',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (reports.isEmpty) ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          'No active moderation cases filed. Violations you report are monitored here.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: CampusTheme.textMuted,
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 8),
+                        ...reports.take(3).map((r) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: CampusTheme.darkCard,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${r.id} · ${r.reason}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Target: ${r.targetName} (${r.targetType})',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: CampusTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: r.status == 'Resolved' ||
+                                            r.status == 'Action Taken'
+                                        ? CampusTheme.mint
+                                            .withValues(alpha: 0.2)
+                                        : CampusTheme.amberOrange
+                                            .withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    r.status,
+                                    style: TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: r.status == 'Resolved' ||
+                                              r.status == 'Action Taken'
+                                          ? CampusTheme.mint
+                                          : CampusTheme.amberOrange,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -699,6 +1026,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontSize: 14,
               color: CampusTheme.textMuted,
             ),
+          ),
+          const SizedBox(height: 8),
+          FutureBuilder<bool>(
+            future: CampusSafetyManager.isVerified(_profile!.email),
+            builder: (ctx, snap) {
+              final isVerified = snap.data == true;
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isVerified
+                      ? CampusTheme.mint.withValues(alpha: 0.15)
+                      : CampusTheme.softBlue.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isVerified
+                        ? CampusTheme.mint.withValues(alpha: 0.4)
+                        : CampusTheme.softBlue.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isVerified
+                          ? Icons.verified_user_rounded
+                          : Icons.shield_outlined,
+                      size: 14,
+                      color:
+                          isVerified ? CampusTheme.mint : CampusTheme.softBlue,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isVerified
+                          ? 'Verified Campus Student 🛡️'
+                          : 'Campus Member',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isVerified
+                            ? CampusTheme.mint
+                            : CampusTheme.softBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           if (cleanBio.isNotEmpty) ...[
             const SizedBox(height: 10),

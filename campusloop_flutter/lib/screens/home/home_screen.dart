@@ -5,6 +5,7 @@ import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
 import '../../models/campus_notification.dart';
 import '../../models/study_collab_models.dart';
+import '../../models/campus_safety_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../../widgets/home/notifications_sheet.dart';
@@ -118,11 +119,16 @@ class _HomeScreenState extends State<HomeScreen> {
       _incomingPendingIds =
           incomingRequests.map((r) => r.fromProfileId).toSet();
 
+      final blockedIds = currentProfileId != null
+          ? await CampusSafetyManager.getBlockedUserIds(currentProfileId!)
+          : <int>{};
+
       final excludedIds = {
         if (currentProfileId != null) currentProfileId!,
         ..._connectedProfileIds,
         ..._outgoingPendingIds,
         ..._incomingPendingIds,
+        ...blockedIds,
       };
 
       // Load peers matching shared interests, subjects, or department,
@@ -267,21 +273,45 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    // 4. Campus Events (workshops, hackathons, cultural fests)
+    // 4. Campus Events (workshops, hackathons, cultural fests) & Urgent Cancellations
     for (final event in _upcomingEvents) {
+      final isCancelled = event.title.trim().startsWith('[CANCELLED]');
       final cleanTitle = cleanCampusTitle(event.title);
-      list.add(
-        CampusNotification(
-          id: 'event_${event.id}',
-          category: NotificationCategory.event,
-          title: 'Upcoming Event: $cleanTitle',
-          message:
-              '${event.category} · Venue: ${event.venue} on ${event.dateTime.day}/${event.dateTime.month} at ${event.dateTime.hour}:${event.dateTime.minute.toString().padLeft(2, '0')}.',
-          timestamp: event.createdAt,
-          targetId: event.id,
-          eventPayload: event,
-        ),
-      );
+
+      if (isCancelled) {
+        String cancelReason = 'Cancelled by event organizer';
+        final match = RegExp(r'\[EVENT_CANCELLED:\s*([^\]]+)\]')
+            .firstMatch(event.description);
+        if (match != null) {
+          cancelReason = match.group(1)?.trim() ?? cancelReason;
+        }
+
+        list.add(
+          CampusNotification(
+            id: 'event_cancelled_${event.id}',
+            category: NotificationCategory.cancellationAlert,
+            title: '⚠️ CANCELLED: $cleanTitle',
+            message:
+                'Organizer Notice: "$cancelReason". Please do not travel to ${event.venue}.',
+            timestamp: event.updatedAt,
+            targetId: event.id,
+            eventPayload: event,
+          ),
+        );
+      } else {
+        list.add(
+          CampusNotification(
+            id: 'event_${event.id}',
+            category: NotificationCategory.event,
+            title: 'Upcoming Event: $cleanTitle',
+            message:
+                '${event.category} · Venue: ${event.venue} on ${event.dateTime.day}/${event.dateTime.month} at ${event.dateTime.hour}:${event.dateTime.minute.toString().padLeft(2, '0')}.',
+            timestamp: event.createdAt,
+            targetId: event.id,
+            eventPayload: event,
+          ),
+        );
+      }
     }
 
     // Load read notification IDs from SharedPreferences
@@ -346,6 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
         AppShell.switchTab(context, 1, subTab: 1); // Study Partners
         break;
       case NotificationCategory.event:
+      case NotificationCategory.cancellationAlert:
         AppShell.switchTab(context, 1, subTab: 0); // Events
         break;
       case NotificationCategory.clubActivity:
@@ -642,6 +673,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       _buildWelcomeSection(),
+                      _buildUrgentCancellationAlert(),
                       CampusFeatureBanner(
                         imageAsset: 'assets/images/home_banner.jpg',
                         fallbackAsset: 'assets/images/campus_hero.jpg',
@@ -801,6 +833,95 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// High-priority alert banner notifying registered students if an event has been cancelled by organizer
+  Widget _buildUrgentCancellationAlert() {
+    CampusEvent? cancelledEvent;
+    for (final e in _upcomingEvents) {
+      if (e.title.trim().startsWith('[CANCELLED]')) {
+        cancelledEvent = e;
+        break;
+      }
+    }
+
+    if (cancelledEvent == null) return const SizedBox.shrink();
+
+    final cleanTitle = cleanCampusTitle(cancelledEvent.title);
+    String reason = 'Cancelled by event organizer';
+    final match = RegExp(r'\[EVENT_CANCELLED:\s*([^\]]+)\]')
+        .firstMatch(cancelledEvent.description);
+    if (match != null) {
+      reason = match.group(1)?.trim() ?? reason;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: CampusTheme.coral.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: CampusTheme.coral.withValues(alpha: 0.5),
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: CampusTheme.coral.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.event_busy_rounded,
+                color: CampusTheme.coral, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '⚠️ EVENT CANCELLATION NOTICE',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: CampusTheme.coral,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$cleanTitle has been cancelled',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Reason: $reason · Do not travel to ${cancelledEvent.venue}.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: CampusTheme.textLight,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, color: CampusTheme.coral),
+            onPressed: () {
+              AppShell.switchTab(context, 1, subTab: 0); // Open Events
+            },
           ),
         ],
       ),
@@ -1598,13 +1719,52 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              partner.displayName,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    partner.displayName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                if (partner.email.endsWith('.edu') ||
+                    partner.email.endsWith('.ac.in') ||
+                    partner.email.endsWith('.edu.in')) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: CampusTheme.mint.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: CampusTheme.mint.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_rounded,
+                            size: 12, color: CampusTheme.mint),
+                        SizedBox(width: 4),
+                        Text(
+                          'Verified Member',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: CampusTheme.mint,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
             if (partner.department != null) ...[
               const SizedBox(height: 4),
@@ -1874,6 +2034,54 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
             ],
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton.icon(
+                  icon: const Icon(Icons.flag_outlined,
+                      size: 14, color: CampusTheme.textMuted),
+                  label: const Text(
+                    'Report',
+                    style: TextStyle(
+                        fontSize: 12, color: CampusTheme.textMuted),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    CampusSafetyManager.showReportModal(
+                      context,
+                      currentUserId: currentProfileId!,
+                      targetType: 'student',
+                      targetId: partner.id!,
+                      targetName: partner.displayName,
+                      onReported: _loadDashboard,
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                const Text('•', style: TextStyle(color: Colors.white24)),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  icon: const Icon(Icons.block_rounded,
+                      size: 14, color: CampusTheme.coral),
+                  label: const Text(
+                    'Block Student',
+                    style: TextStyle(
+                        fontSize: 12, color: CampusTheme.coral),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    CampusSafetyManager.confirmAndBlockUser(
+                      context,
+                      currentUserId: currentProfileId!,
+                      targetUserId: partner.id!,
+                      targetName: partner.displayName,
+                      onBlocked: _loadDashboard,
+                    );
+                  },
+                ),
+              ],
+            ),
           ],
         ),
       ),

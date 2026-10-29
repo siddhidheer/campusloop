@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../models/campus_notification.dart';
 import '../../theme/campus_theme.dart';
 import '../common/campus_widgets.dart';
@@ -51,7 +51,9 @@ class _NotificationsSheetState extends State<NotificationsSheet> {
           .toList();
     } else if (_selectedFilter == 'Events') {
       return widget.notifications
-          .where((n) => n.category == NotificationCategory.event)
+          .where((n) =>
+              n.category == NotificationCategory.event ||
+              n.category == NotificationCategory.cancellationAlert)
           .toList();
     }
     return widget.notifications;
@@ -181,7 +183,7 @@ class _NotificationsSheetState extends State<NotificationsSheet> {
                 _buildFilterChip('Requests', _countForCategory(NotificationCategory.connectionRequest)),
                 _buildFilterChip('Updates', _countForCategory(NotificationCategory.campusUpdate)),
                 _buildFilterChip('Clubs', _countForCategory(NotificationCategory.clubActivity)),
-                _buildFilterChip('Events', _countForCategory(NotificationCategory.event)),
+                _buildFilterChip('Events', _countForCategory(NotificationCategory.event) + _countForCategory(NotificationCategory.cancellationAlert)),
               ],
             ),
           ),
@@ -269,6 +271,11 @@ class _NotificationsSheetState extends State<NotificationsSheet> {
         themeColor = CampusTheme.primaryOrange;
         icon = Icons.event_available_rounded;
         tagLabel = 'EVENT';
+        break;
+      case NotificationCategory.cancellationAlert:
+        themeColor = CampusTheme.coral;
+        icon = Icons.event_busy_rounded;
+        tagLabel = 'CANCELLED EVENT';
         break;
     }
 

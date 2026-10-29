@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
+import '../../models/campus_safety_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 
@@ -543,9 +544,16 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
         widget.community.id!,
         currentProfileId!,
       );
+      final blockedIds = currentProfileId != null
+          ? await CampusSafetyManager.getBlockedUserIds(currentProfileId!)
+          : <int>{};
+      final filteredPosts = posts
+          .where((p) => !blockedIds.contains(p.authorProfileId))
+          .toList();
+
       if (mounted) {
         setState(() {
-          _posts = posts;
+          _posts = filteredPosts;
           _members = members;
           _isMember = memberCheck;
           _isLoading = false;
@@ -554,6 +562,386 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Organizer-only modal displaying enrolled students, their skills, and academic interests
+  Future<void> _showOrganizerInsightsModal() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CampusTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (ctx, scrollCtrl) => FutureBuilder<List<StudentProfile>>(
+          future: Future.wait(
+            _members.map((m) async {
+              try {
+                final p = await client.profile.getProfile(m.profileId);
+                return p;
+              } catch (_) {
+                return null;
+              }
+            }),
+          ).then((list) => list.whereType<StudentProfile>().toList()),
+          builder: (ctx, snap) {
+            final profiles = snap.data ?? [];
+            final isLoading = snap.connectionState == ConnectionState.waiting;
+
+            // Calculate skill clusters
+            final skillCounts = <String, int>{};
+            for (final p in profiles) {
+              for (final s in p.studySubjects) {
+                skillCounts[s] = (skillCounts[s] ?? 0) + 1;
+              }
+              for (final i in p.interests) {
+                skillCounts[i] = (skillCounts[i] ?? 0) + 1;
+              }
+            }
+            final sortedSkills = skillCounts.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+
+            return ListView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.all(20),
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: CampusTheme.mint.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: CampusTheme.mint,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Organizer Insights & Member Skills',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Confidential: Visible only to the community organizer',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: CampusTheme.mint,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Skill clusters card
+                if (sortedSkills.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: CampusTheme.darkSurface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.bolt_rounded,
+                                size: 16, color: CampusTheme.amberOrange),
+                            SizedBox(width: 6),
+                            Text(
+                              'Top Skills in this Community',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: sortedSkills.take(8).map((e) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: CampusTheme.mint.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color:
+                                      CampusTheme.mint.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                '${e.key} (${e.value})',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: CampusTheme.mint,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Row(
+                  children: [
+                    const Text(
+                      'Joined Members Roster',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${profiles.length} students',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: CampusTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CampusLoader(
+                          message: 'Loading member skill profiles...'),
+                    ),
+                  )
+                else if (profiles.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Text(
+                        'No joined members yet.',
+                        style: TextStyle(color: CampusTheme.textMuted),
+                      ),
+                    ),
+                  )
+                else
+                  ...profiles.map((p) {
+                    final isCreator =
+                        p.id == widget.community.creatorProfileId;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: CampusTheme.darkSurface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isCreator
+                              ? CampusTheme.mint.withValues(alpha: 0.4)
+                              : Colors.white10,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: isCreator
+                                    ? CampusTheme.mint.withValues(alpha: 0.2)
+                                    : CampusTheme.primaryOrange
+                                        .withValues(alpha: 0.2),
+                                child: Text(
+                                  p.displayName.isNotEmpty
+                                      ? p.displayName[0].toUpperCase()
+                                      : 'S',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: isCreator
+                                        ? CampusTheme.mint
+                                        : CampusTheme.primaryOrange,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            p.displayName,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isCreator
+                                                ? CampusTheme.mint
+                                                    .withValues(alpha: 0.2)
+                                                : Colors.white
+                                                    .withValues(alpha: 0.08),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            isCreator
+                                                ? '👑 Organizer'
+                                                : 'Member',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: isCreator
+                                                  ? CampusTheme.mint
+                                                  : CampusTheme.textMuted,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      '${p.department ?? "General Studies"} · Year ${p.year ?? 1}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: CampusTheme.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Study Subjects (Skills)
+                          if (p.studySubjects.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Academic Subjects & Strengths:',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: CampusTheme.textMuted),
+                            ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 5,
+                              runSpacing: 4,
+                              children: p.studySubjects
+                                  .map((s) => Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: CampusTheme.darkCard,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          border: Border.all(
+                                              color: Colors.white12),
+                                        ),
+                                        child: Text(
+                                          s,
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              color: CampusTheme.textLight),
+                                        ),
+                                      ))
+                                  .toList(),
+                            ),
+                          ],
+                          // Technical & Creative Interests
+                          if (p.interests.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Technical Skills & Interests:',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: CampusTheme.textMuted),
+                            ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 5,
+                              runSpacing: 4,
+                              children: p.interests
+                                  .map((i) => Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: CampusTheme.primaryOrange
+                                              .withValues(alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: CampusTheme.primaryOrange
+                                                .withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          i,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: CampusTheme.primaryOrange,
+                                          ),
+                                        ),
+                                      ))
+                                  .toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
   void _showCreatePostDialog() {
@@ -628,13 +1016,10 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
         actions: [
           if (isCreator)
             IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Community settings coming soon')),
-                );
-              },
+              icon: const Icon(Icons.workspace_premium_rounded,
+                  color: CampusTheme.mint),
+              tooltip: 'Organizer Insights & Skills',
+              onPressed: _showOrganizerInsightsModal,
             ),
         ],
       ),
@@ -731,6 +1116,83 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
                   ),
                 ),
 
+                // Organizer-Only Exclusive Member Insights & Skills Banner
+                if (isCreator)
+                  Container(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: CampusTheme.mint.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: CampusTheme.mint.withValues(alpha: 0.4),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: CampusTheme.mint.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.workspace_premium_rounded,
+                                color: CampusTheme.mint,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                '👑 Organizer Studio (Exclusive to You)',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: CampusTheme.mint,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Only you as the community organizer can access full member roster details, joined student profiles, and their specific skills & interests.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: CampusTheme.textLight,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.people_outline_rounded,
+                                size: 18),
+                            label: Text(
+                                'View Joined Members & Skills (${_members.length})'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: CampusTheme.mint,
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _showOrganizerInsightsModal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Posts section
                 SectionHeader(
                   title: 'Posts',
@@ -806,19 +1268,41 @@ class _PostCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isAdmin || post.authorProfileId == currentProfileId)
-                  PopupMenuButton(
-                    icon: const Icon(Icons.more_vert, size: 18),
-                    itemBuilder: (_) => [
+                PopupMenuButton(
+                  icon: const Icon(Icons.more_vert, size: 18),
+                  itemBuilder: (_) => [
+                    if (isAdmin || post.authorProfileId == currentProfileId)
                       const PopupMenuItem(
                         value: 'delete',
-                        child: Text('Delete'),
+                        child: Text('Delete Post'),
                       ),
-                    ],
-                    onSelected: (v) {
-                      if (v == 'delete') onDelete();
-                    },
-                  ),
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined,
+                              size: 16, color: CampusTheme.coral),
+                          SizedBox(width: 8),
+                          Text('Report Post',
+                              style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (v) {
+                    if (v == 'delete') {
+                      onDelete();
+                    } else if (v == 'report') {
+                      CampusSafetyManager.showReportModal(
+                        context,
+                        currentUserId: currentProfileId ?? 1,
+                        targetType: 'post',
+                        targetId: post.id ?? 0,
+                        targetName: post.title,
+                      );
+                    }
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 8),

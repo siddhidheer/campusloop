@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
 import '../../models/study_collab_models.dart';
+import '../../models/campus_safety_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import 'study_room_screen.dart';
@@ -402,8 +403,10 @@ class _EventsTabState extends State<_EventsTab> {
                           child: ListView.builder(
                             padding: const EdgeInsets.only(bottom: 80),
                             itemCount: _events.length,
-                            itemBuilder: (ctx, i) =>
-                                _EventCard(event: _events[i]),
+                            itemBuilder: (ctx, i) => _EventCard(
+                              event: _events[i],
+                              onStatusChanged: _loadEvents,
+                            ),
                           ),
                         ),
         ),
@@ -415,12 +418,14 @@ class _EventsTabState extends State<_EventsTab> {
 /// ─── Event Card ───
 class _EventCard extends StatelessWidget {
   final CampusEvent event;
-  const _EventCard({required this.event});
+  final VoidCallback? onStatusChanged;
+  const _EventCard({required this.event, this.onStatusChanged});
 
   @override
   Widget build(BuildContext context) {
     final catColor = CampusTheme.categoryColor(event.category);
     final daysUntil = event.dateTime.difference(DateTime.now()).inDays;
+    final isCancelled = event.title.trim().startsWith('[CANCELLED]');
     final months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -428,6 +433,15 @@ class _EventCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isCancelled
+              ? CampusTheme.coral.withValues(alpha: 0.5)
+              : Colors.transparent,
+          width: isCancelled ? 1.2 : 0,
+        ),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => _showEventDetail(context),
@@ -440,7 +454,9 @@ class _EventCard extends StatelessWidget {
                 width: 56,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: catColor.withValues(alpha: 0.12),
+                  color: isCancelled
+                      ? CampusTheme.coral.withValues(alpha: 0.12)
+                      : catColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
@@ -451,7 +467,7 @@ class _EventCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: catColor,
+                        color: isCancelled ? CampusTheme.coral : catColor,
                       ),
                     ),
                     Text(
@@ -459,7 +475,7 @@ class _EventCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: catColor,
+                        color: isCancelled ? CampusTheme.coral : catColor,
                         height: 1.1,
                       ),
                     ),
@@ -493,7 +509,30 @@ class _EventCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        if (daysUntil <= 3)
+                        if (isCancelled)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: CampusTheme.coral.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: CampusTheme.coral.withValues(alpha: 0.5),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: const Text(
+                              '🚫 CANCELLED',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: CampusTheme.coral,
+                              ),
+                            ),
+                          )
+                        else if (daysUntil <= 3)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -523,12 +562,25 @@ class _EventCard extends StatelessWidget {
                       cleanCampusTitle(event.title),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: CampusTheme.textLight,
+                        color: isCancelled ? Colors.white70 : CampusTheme.textLight,
+                        decoration: isCancelled ? TextDecoration.lineThrough : null,
                       ),
                     ),
+                    if (isCancelled)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '⚠️ Event cancelled by organizer. Do not travel to venue.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: CampusTheme.coral.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -570,6 +622,14 @@ class _EventCard extends StatelessWidget {
   }
 
   void _showEventDetail(BuildContext context) {
+    final isCancelled = event.title.trim().startsWith('[CANCELLED]');
+    final isOrganizer = currentProfileId != null && event.organizerProfileId == currentProfileId;
+    String? cancelReason;
+    final reasonMatch = RegExp(r'\[EVENT_CANCELLED:\s*([^\]]+)\]').firstMatch(event.description);
+    if (reasonMatch != null) {
+      cancelReason = reasonMatch.group(1)?.trim();
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -578,7 +638,7 @@ class _EventCard extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
+        initialChildSize: 0.75,
         maxChildSize: 0.95,
         minChildSize: 0.5,
         expand: false,
@@ -597,6 +657,59 @@ class _EventCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+            if (isCancelled) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: CampusTheme.coral.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: CampusTheme.coral.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.event_busy_rounded,
+                            color: CampusTheme.coral, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'EVENT CANCELLED BY ORGANIZER',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: CampusTheme.coral,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (cancelReason != null && cancelReason.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Reason: $cancelReason',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Text(
+                      'This event has been called off. Please do not travel to ${event.venue}.',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: CampusTheme.textLight,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -649,11 +762,215 @@ class _EventCard extends StatelessWidget {
                 height: 1.6,
               ),
             ),
+            const SizedBox(height: 24),
+            if (isOrganizer) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: CampusTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.admin_panel_settings_rounded,
+                            color: CampusTheme.mint, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Organizer Controls',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isCancelled
+                          ? 'This event is currently marked as Cancelled. You can reactivate it if plans change.'
+                          : 'As the organizer, you can cancel this event and broadcast an alert to prevent students from travelling to the venue.',
+                      style: const TextStyle(fontSize: 12, color: CampusTheme.textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    if (!isCancelled)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.cancel_outlined, size: 18),
+                          label: const Text('Cancel Event & Broadcast Alert'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: CampusTheme.coral,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => _confirmCancelEvent(context),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Reactivate Event'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: CampusTheme.mint,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => _confirmReactivateEvent(context),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            // Student Report Button
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                icon: const Icon(Icons.flag_outlined, size: 15, color: CampusTheme.textMuted),
+                label: const Text(
+                  'Report event to moderation',
+                  style: TextStyle(fontSize: 11, color: CampusTheme.textMuted),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  CampusSafetyManager.showReportModal(
+                    context,
+                    currentUserId: currentProfileId ?? 1,
+                    targetType: 'event',
+                    targetId: event.id ?? 0,
+                    targetName: event.title,
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 32),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmCancelEvent(BuildContext context) async {
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: CampusTheme.darkSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: CampusTheme.coral.withValues(alpha: 0.4)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.event_busy_rounded, color: CampusTheme.coral, size: 24),
+            SizedBox(width: 10),
+            Text('Cancel Campus Event',
+                style: TextStyle(color: Colors.white, fontSize: 17)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Cancelling this event will broadcast an urgent alert to all students across campus to prevent travelling to the venue.',
+              style: TextStyle(fontSize: 12, color: CampusTheme.textLight),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Cancellation Reason (Displayed to Students):',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: reasonCtrl,
+              maxLines: 2,
+              style: const TextStyle(fontSize: 13, color: Colors.white),
+              decoration: InputDecoration(
+                hintText:
+                    'e.g. Guest speaker unavailable / Postponed to next week...',
+                hintStyle:
+                    const TextStyle(fontSize: 12, color: CampusTheme.textMuted),
+                fillColor: CampusTheme.darkCard,
+                filled: true,
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Back'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: CampusTheme.coral,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirm Cancellation'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final reason = reasonCtrl.text.trim().isNotEmpty
+          ? reasonCtrl.text.trim()
+          : 'Cancelled by the event organizer';
+      await CampusEventManager.cancelEvent(
+        client: client,
+        event: event,
+        reason: reason,
+        requestingProfileId: currentProfileId!,
+      );
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close bottom sheet
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              '✓ Event marked as CANCELLED. Urgent cancellation alert broadcasted.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: CampusTheme.coral,
+        ),
+      );
+      onStatusChanged?.call();
+    }
+  }
+
+  Future<void> _confirmReactivateEvent(BuildContext context) async {
+    await CampusEventManager.reactivateEvent(
+      client: client,
+      event: event,
+      requestingProfileId: currentProfileId!,
+    );
+    if (!context.mounted) return;
+    Navigator.pop(context); // Close bottom sheet
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✓ Event has been reactivated.'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: CampusTheme.mint,
+      ),
+    );
+    onStatusChanged?.call();
   }
 
   Widget _detailRow(IconData icon, String text) {
@@ -751,11 +1068,29 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
       _connections =
           await client.studyPartner.getConnections(currentProfileId!);
 
-      // Rank peers by shared interests & subjects, excluding corrupted/test names
+      final blockedIds = currentProfileId != null
+          ? await CampusSafetyManager.getBlockedUserIds(currentProfileId!)
+          : <int>{};
+
+      // Exclude blocked students from incoming requests, outgoing requests, and connections
+      _incoming = _incoming
+          .where((r) => !blockedIds.contains(r.fromProfileId))
+          .toList();
+      _outgoing = _outgoing
+          .where((r) => !blockedIds.contains(r.toProfileId))
+          .toList();
+      _connections = _connections
+          .where((c) =>
+              !blockedIds.contains(c.fromProfileId) &&
+              !blockedIds.contains(c.toProfileId))
+          .toList();
+
+      // Rank peers by shared interests & subjects, excluding blocked users and corrupted/test names
       final others = _allProfiles
           .where((p) =>
               p.id != null &&
               p.id != currentProfileId &&
+              !blockedIds.contains(p.id) &&
               !p.displayName.toLowerCase().contains('serverpod') &&
               !p.displayName.toLowerCase().contains('statuscode') &&
               !p.displayName.toLowerCase().contains('internal server error') &&
@@ -1159,13 +1494,29 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    partner.displayName,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          partner.displayName,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      if (partner.email.endsWith('.edu') ||
+                                          partner.email.endsWith('.ac.in') ||
+                                          partner.email.endsWith('.edu.in')) ...[
+                                        const SizedBox(width: 4),
+                                        const Tooltip(
+                                          message: 'Verified Campus Member',
+                                          child: Icon(Icons.verified_rounded,
+                                              size: 14, color: CampusTheme.mint),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   if (partner.department != null)
                                     Text(
@@ -1381,6 +1732,66 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                                       color: Colors.white),
                                 ),
                               ),
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert,
+                                  size: 18, color: CampusTheme.textMuted),
+                              padding: EdgeInsets.zero,
+                              color: CampusTheme.darkSurface,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(color: Colors.white12),
+                              ),
+                              onSelected: (val) {
+                                if (val == 'report') {
+                                  CampusSafetyManager.showReportModal(
+                                    context,
+                                    currentUserId: currentProfileId!,
+                                    targetType: 'student',
+                                    targetId: partner.id!,
+                                    targetName: partner.displayName,
+                                    onReported: _loadData,
+                                  );
+                                } else if (val == 'block') {
+                                  CampusSafetyManager.confirmAndBlockUser(
+                                    context,
+                                    currentUserId: currentProfileId!,
+                                    targetUserId: partner.id!,
+                                    targetName: partner.displayName,
+                                    onBlocked: _loadData,
+                                  );
+                                }
+                              },
+                              itemBuilder: (ctx) => [
+                                const PopupMenuItem(
+                                  value: 'report',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.flag_outlined,
+                                          size: 16, color: CampusTheme.coral),
+                                      SizedBox(width: 8),
+                                      Text('Report Student',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white)),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'block',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.block_rounded,
+                                          size: 16, color: CampusTheme.coral),
+                                      SizedBox(width: 8),
+                                      Text('Block Student',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: CampusTheme.coral)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),

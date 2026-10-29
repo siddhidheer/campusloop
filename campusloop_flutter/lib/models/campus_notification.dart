@@ -1,10 +1,11 @@
-﻿import 'package:campusloop_client/campusloop_client.dart';
+import 'package:campusloop_client/campusloop_client.dart';
 
 enum NotificationCategory {
   connectionRequest,
   campusUpdate,
   clubActivity,
   event,
+  cancellationAlert,
 }
 
 /// Unified notification model for the CampusLoop notifications center.

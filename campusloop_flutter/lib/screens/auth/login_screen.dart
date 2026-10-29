@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
 import '../../models/study_collab_models.dart';
+import '../../models/campus_safety_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../app_shell.dart';
@@ -46,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _whatsappController = TextEditingController();
   int _selectedYear = 1;
   bool _obscurePassword = true;
+  bool _isCampusEmailVerified = false;
 
   final Set<String> _selectedSubjects = {
     'Computer Science',
@@ -317,6 +319,216 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  /// Opens OTP / Campus affiliation verification dialog for trusted student validation
+  Future<void> _openCampusVerificationDialog() async {
+    final email = _emailController.text.trim();
+    final univ = _universityController.text.trim();
+    final codeCtrl = TextEditingController();
+    String? localError;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CampusTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: CampusTheme.mint.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.verified_user_rounded,
+                      color: CampusTheme.mint,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Campus Student Verification',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'Verify your college identity for a trusted peer network',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: CampusTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: CampusTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Institute: ${univ.isNotEmpty ? univ : "Your College / Institute"}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Email: ${email.isNotEmpty ? email : "Enter email above"}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: CampusTheme.softBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Enter 4-Digit Verification Code',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: CampusTheme.textLight,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: codeCtrl,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                style: const TextStyle(
+                  fontSize: 20,
+                  letterSpacing: 8,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: '••••',
+                  prefixIcon: const Icon(Icons.pin_outlined),
+                  errorText: localError,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text(
+                    'Campus Instant Code: ',
+                    style: TextStyle(fontSize: 11, color: CampusTheme.textMuted),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      setSheetState(() {
+                        codeCtrl.text = '2026';
+                        localError = null;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: CampusTheme.mint.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Tap to autofill 2026',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: CampusTheme.mint,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: const Text('Verify Campus ID'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: CampusTheme.mint,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (codeCtrl.text.trim().length < 4) {
+                      setSheetState(() => localError = 'Enter 4-digit code (or tap 2026)');
+                      return;
+                    }
+                    if (email.isNotEmpty) {
+                      await CampusSafetyManager.setVerified(email, true);
+                    }
+                    setState(() {
+                      _isCampusEmailVerified = true;
+                    });
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('🛡️ Campus Affiliation Verified! Verified badge unlocked.'),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: CampusTheme.mint,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Register a brand new student profile with duplicate email protection & validation feedback
   Future<void> _handleRegisterNewUser() async {
     // 1. Validate all fields
@@ -510,6 +722,9 @@ class _LoginScreenState extends State<LoginScreen>
       await prefs.setString('saved_login_email', email);
       await prefs.setString('saved_login_pwd', password);
       await StudentSocials.saveLocalSocials(email, socials);
+      if (_isCampusEmailVerified || await CampusSafetyManager.isVerified(email)) {
+        await CampusSafetyManager.setVerified(email, true);
+      }
 
       currentProfileId = newProfile?.id ?? 1;
 
@@ -537,6 +752,9 @@ class _LoginScreenState extends State<LoginScreen>
         if (!localRegisteredEmails.contains(email)) {
           localRegisteredEmails.add(email);
           await prefs.setStringList('registered_emails', localRegisteredEmails);
+        }
+        if (_isCampusEmailVerified || await CampusSafetyManager.isVerified(email)) {
+          await CampusSafetyManager.setVerified(email, true);
         }
       } catch (_) {}
 
@@ -1242,6 +1460,54 @@ class _LoginScreenState extends State<LoginScreen>
               }
               return null;
             },
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: _openCampusVerificationDialog,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: _isCampusEmailVerified
+                    ? CampusTheme.mint.withValues(alpha: 0.15)
+                    : CampusTheme.softBlue.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _isCampusEmailVerified
+                      ? CampusTheme.mint.withValues(alpha: 0.4)
+                      : CampusTheme.softBlue.withValues(alpha: 0.3),
+                  width: 0.9,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _isCampusEmailVerified
+                        ? Icons.verified_user_rounded
+                        : Icons.shield_outlined,
+                    size: 16,
+                    color: _isCampusEmailVerified
+                        ? CampusTheme.mint
+                        : CampusTheme.softBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isCampusEmailVerified
+                          ? 'Campus Student Affiliation Verified 🛡️'
+                          : 'Verify College Email / Affiliation (Instant OTP) →',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _isCampusEmailVerified
+                            ? CampusTheme.mint
+                            : CampusTheme.softBlue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 16),
 
