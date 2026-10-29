@@ -1396,7 +1396,77 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 18),
 
-          // 6. Study Subjects
+          // 7. Study Partner Direct Channels (Optional - Revealed Only to Connected Peers)
+          _buildLabel('Partner Contact Channels (Optional)'),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: CampusTheme.darkCardLight,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: CampusTheme.mint.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.lock_outline_rounded,
+                        size: 16, color: CampusTheme.mint),
+                    SizedBox(width: 6),
+                    Text(
+                      'Private & Safe (Connected Peers Only)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: CampusTheme.mint,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'These handles remain hidden and will ONLY be revealed to students whose study partner request you accept.',
+                  style: TextStyle(fontSize: 11, color: CampusTheme.textMuted),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _discordController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'Discord ID / Tag',
+                    hintText: 'e.g. siddhi#1234 or @siddhi',
+                    prefixIcon:
+                        Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _linkedinController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'LinkedIn Profile URL / Handle',
+                    hintText: 'e.g. linkedin.com/in/siddhi',
+                    prefixIcon: Icon(Icons.business_center_rounded, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _whatsappController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'WhatsApp / Phone (Optional)',
+                    hintText: 'e.g. +91 9876543210',
+                    prefixIcon: Icon(Icons.phone_iphone_rounded, size: 18),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // 8. Study Subjects
           _buildLabel('Study Subjects (Tap to select or add)'),
           Wrap(
             spacing: 6,
@@ -1521,76 +1591,6 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 20),
-
-          // 8. Study Partner Direct Channels (Optional - Revealed Only to Connected Peers)
-          _buildLabel('Partner Contact Channels (Optional)'),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: CampusTheme.darkCardLight,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: CampusTheme.mint.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.lock_outline_rounded,
-                        size: 16, color: CampusTheme.mint),
-                    SizedBox(width: 6),
-                    Text(
-                      'Private & Safe (Connected Peers Only)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: CampusTheme.mint,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'These handles remain hidden and will ONLY be revealed to students whose study partner request you accept.',
-                  style: TextStyle(fontSize: 11, color: CampusTheme.textMuted),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _discordController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: const InputDecoration(
-                    labelText: 'Discord ID / Tag',
-                    hintText: 'e.g. siddhi#1234 or @siddhi',
-                    prefixIcon:
-                        Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _linkedinController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: const InputDecoration(
-                    labelText: 'LinkedIn Profile URL / Handle',
-                    hintText: 'e.g. linkedin.com/in/siddhi',
-                    prefixIcon: Icon(Icons.business_center_rounded, size: 18),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _whatsappController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: const InputDecoration(
-                    labelText: 'WhatsApp / Phone (Optional)',
-                    hintText: 'e.g. +91 9876543210',
-                    prefixIcon: Icon(Icons.phone_iphone_rounded, size: 18),
-                  ),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 28),
 

@@ -838,29 +838,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Icon(Icons.hub_rounded,
                     color: CampusTheme.mint, size: 20),
                 const SizedBox(width: 8),
-                const Text(
-                  'Direct Contact & Socials',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: CampusTheme.textLight,
+                const Expanded(
+                  child: Text(
+                    'Direct Contact & Socials',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: CampusTheme.textLight,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: CampusTheme.mint.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: CampusTheme.mint.withValues(alpha: 0.3),
+                      width: 0.8,
+                    ),
                   ),
                   child: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.lock_open_rounded,
+                      Icon(Icons.lock_outline_rounded,
                           size: 11, color: CampusTheme.mint),
                       SizedBox(width: 4),
                       Text(
