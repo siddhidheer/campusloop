@@ -294,13 +294,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _logout() {
+  Future<void> _logout() async {
     currentProfileId = null;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('saved_session_token');
+      await prefs.remove('saved_profile_id');
+      await prefs.remove('saved_login_pwd');
+      await prefs.remove('current_user_email');
+      await prefs.remove('current_user_role');
+      await prefs.remove('current_user_can_create_community');
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    }
   }
 
   /// Displays warning confirmation dialog before permanently deleting account
@@ -492,6 +504,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // 3. Clear global session
       currentProfileId = null;
+      await prefs.remove('saved_session_token');
+      await prefs.remove('saved_profile_id');
+      await prefs.remove('saved_login_pwd');
+      await prefs.remove('current_user_email');
+      await prefs.remove('current_user_role');
+      await prefs.remove('current_user_can_create_community');
 
       // 4. Return to login screen with confirmation
       if (mounted) {

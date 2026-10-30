@@ -174,7 +174,6 @@ class _LoginScreenState extends State<LoginScreen>
       final savedPwd = prefs.getString('saved_login_pwd') ?? '';
       final savedUniv = prefs.getString('saved_login_university') ?? '';
       final savedProfileId = prefs.getInt('saved_profile_id');
-      final savedToken = prefs.getString('saved_session_token');
 
       if (savedProfileId != null) {
         currentProfileId = savedProfileId;
@@ -189,19 +188,6 @@ class _LoginScreenState extends State<LoginScreen>
           // Default to Existing User tab when saved credentials exist
           _isNewUser = false;
         });
-
-        // If authenticated session exists, validate seamlessly across restarts
-        if (savedToken != null && savedToken.isNotEmpty && savedPwd.isNotEmpty) {
-          try {
-            final authRes = await client.auth.login(savedEmail, savedPwd);
-            if (authRes.success && mounted) {
-              currentProfileId = authRes.profile?.id ?? savedProfileId;
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const AppShell()),
-              );
-            }
-          } catch (_) {}
-        }
       }
     } catch (_) {}
   }

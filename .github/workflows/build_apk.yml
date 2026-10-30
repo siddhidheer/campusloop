@@ -64,33 +64,28 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.0.9-apk
-          name: "CampusLoop Android App v1.0.9"
+          tag_name: v1.1.0-apk
+          name: "CampusLoop Android App v1.1.0"
           body: |
-            ### 📱 CampusLoop Android Release v1.0.9 — Campus Safety, Moderation & Event Broadcasts
+            ### 📱 CampusLoop Android Release v1.1.0 — Verified Email Auth, Community Access Control & Smart Spam Moderation
             
             Download the official CampusLoop Android APK to your device:
             
             1. Download `CampusLoop.apk` below on your Android device.
             2. Open the downloaded file and select **Install** / **Update**.
-            3. Explore all 4 new campus trust, organizer, and moderation features!
+            3. Explore all campus features, verified student community, and real-time moderation!
 
-            #### 🌟 What's New in v1.0.9:
-            1. **🛡️ College Verification & Verified Student Badges**:
-               - Verify student affiliation to the same college/institute via domain detection (.edu, .ac.in) or instant 4-digit code.
-               - Verified student badge (`🛡️ Verified Campus Student`) displayed across Profile, Study Partner cards, and peer modals.
-            2. **🚫 Event Cancellation & Urgent Broadcast Notifications**:
-               - Event organizers can update event status and cancel events with reason.
-               - Automatically broadcasts high-priority cancellation notices to all students with advice not to travel to the venue.
-               - Prominent cancellation badges, warning banners, and notification drawer alerts.
-            3. **👑 Organizer-Only Member Skills & Insights Studio**:
-               - Confidential organizer dashboard visible ONLY to the creator of a community.
-               - View who joined the community, their academic year, department, and specific technical skills & study subjects.
-               - Top skill clusters summary to help organizers plan workshops and projects.
-            4. **🚨 Safety, Harassment Reporting, Blocking & Community Guidelines**:
-               - One-tap harassment and violation reporting generating official `#MOD-2026-XXXX` case numbers.
-               - Instant user blocking that hides blocked accounts from partner discovery, community posts, and requests.
-               - Profile safety hub to review submitted cases, manage blocked students (with 1-tap unblock), and view Community Guidelines.
+            #### 🌟 What's New in v1.1.0:
+            1. **🔒 Verified Gmail Registration & Login**:
+               - Cryptographic 6-digit OTP verification for genuine `@gmail.com` accounts.
+               - Salted SHA-256 secure hash, 5-minute expiry, and 60-second cooldown timer.
+               - Clean account logout and seamless multi-account switching.
+            2. **👑 Restricted Community Creation (RBAC)**:
+               - Community creation restricted to designated campus administrators on the Serverpod backend.
+               - Administrative delegation portal to search users by email, grant/revoke permissions, and review immutable audit logs.
+            3. **💬 General Discussion with Smart Moderation**:
+               - Default public forum open to all verified students.
+               - Automatic keyword moderation with leetspeak normalization, duplicate detection, and academic context tolerance.
           files: |
             campusloop_flutter/build/app/outputs/flutter-apk/app-release.apk
             campusloop_flutter/build/app/outputs/flutter-apk/CampusLoop.apk
