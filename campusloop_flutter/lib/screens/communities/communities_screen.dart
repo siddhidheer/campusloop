@@ -620,14 +620,25 @@ class _CommunityDetailScreen extends StatefulWidget {
 class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
   List<CommunityPost> _posts = [];
   List<CommunityMembership> _members = [];
+  final Map<int, StudentProfile> _authorProfiles = {};
+  final TextEditingController _chatController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   bool _isLoading = true;
   bool _isMember = false;
+  bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
     _isMember = widget.isMember;
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -641,16 +652,43 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
       final members = await client.community.getMembers(
         widget.community.id!,
       );
-      final memberCheck = await client.community.isMember(
-        widget.community.id!,
-        currentProfileId!,
-      );
+      final memberCheck = currentProfileId != null
+          ? await client.community.isMember(
+              widget.community.id!,
+              currentProfileId!,
+            )
+          : false;
       final blockedIds = currentProfileId != null
           ? await CampusSafetyManager.getBlockedUserIds(currentProfileId!)
           : <int>{};
       final filteredPosts = posts
           .where((p) => !blockedIds.contains(p.authorProfileId))
           .toList();
+
+      // Resolve author profiles in parallel for all unique authors
+      final authorIds = filteredPosts.map((p) => p.authorProfileId).toSet();
+      if (currentProfileId != null) {
+        authorIds.add(currentProfileId!);
+      }
+      final missingIds =
+          authorIds.where((id) => !_authorProfiles.containsKey(id)).toList();
+      if (missingIds.isNotEmpty) {
+        final profileResults = await Future.wait(
+          missingIds.map((id) async {
+            try {
+              final p = await client.profile.getProfile(id);
+              return MapEntry(id, p);
+            } catch (_) {
+              return null;
+            }
+          }),
+        );
+        for (final entry in profileResults) {
+          if (entry != null && entry.value != null) {
+            _authorProfiles[entry.key] = entry.value!;
+          }
+        }
+      }
 
       if (mounted) {
         setState(() {
@@ -662,6 +700,83 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Send instant chat message in General Discussion or joined community
+  Future<void> _sendChatMessage() async {
+    final text = _chatController.text.trim();
+    if (text.isEmpty) return;
+    if (currentProfileId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to chat.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    _chatController.clear();
+    setState(() => _isSending = true);
+
+    try {
+      final now = DateTime.now();
+      final post = CommunityPost(
+        communityId: widget.community.id!,
+        authorProfileId: currentProfileId!,
+        title: text.length > 50 ? '${text.substring(0, 47)}...' : text,
+        content: text,
+        isPinned: false,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await client.communityPost.createPost(post);
+      await _loadData();
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    } catch (e) {
+      final rawMsg = e.toString().replaceAll('Exception: ', '');
+      final isSpam = rawMsg.toLowerCase().contains('spam') ||
+          rawMsg.toLowerCase().contains('promotional');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  isSpam ? Icons.shield_rounded : Icons.error_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    rawMsg,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: isSpam ? CampusTheme.coral : Colors.red,
+            duration: Duration(seconds: isSpam ? 7 : 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSending = false);
     }
   }
 
@@ -1157,16 +1272,14 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
             ),
         ],
       ),
-      floatingActionButton: (_isMember || isGeneral)
-          ? FloatingActionButton(
-              onPressed: _showCreatePostDialog,
-              child: const Icon(Icons.edit),
-            )
-          : null,
       body: _isLoading
           ? const CampusLoader()
-          : ListView(
+          : Column(
               children: [
+                Expanded(
+                  child: ListView(
+                    controller: _scrollController,
+                    children: [
                 // Community header
                 Container(
                   margin: const EdgeInsets.all(16),
@@ -1355,132 +1468,658 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
                     ),
                   ),
 
-                // Posts section
+                // Posts & Discussion section
                 SectionHeader(
-                  title: isGeneral ? 'Campus Discussions' : 'Posts',
-                  actionLabel: (_isMember || isGeneral) ? 'New Post' : null,
+                  title: isGeneral ? '💬 Live Campus Chat' : 'Discussion & Posts',
+                  actionLabel: (_isMember || isGeneral) ? 'New Topic' : null,
                   onAction: (_isMember || isGeneral) ? _showCreatePostDialog : null,
                 ),
 
                 if (_posts.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(16),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
                     child: CampusEmptyState(
-                      icon: Icons.article_outlined,
-                      title: 'No posts yet',
-                      subtitle:
-                          'Be the first to share something with the community',
+                      icon: isGeneral
+                          ? Icons.chat_bubble_outline_rounded
+                          : Icons.article_outlined,
+                      title: isGeneral ? 'No messages yet' : 'No posts yet',
+                      subtitle: isGeneral
+                          ? 'Start the conversation below! Say hi to your fellow students.'
+                          : 'Be the first to share something with the community',
                     ),
-                  )
-                else
-                  ..._posts.map((post) => _PostCard(
-                        post: post,
-                        isAdmin: isCreator,
-                        onDelete: () async {
-                          await client.communityPost.deletePost(
-                            post.id!,
-                            currentProfileId!,
-                          );
-                          _loadData();
-                        },
-                      )),
+                  ),
 
-                const SizedBox(height: 80),
+                for (final post in _posts)
+                  _PostCard(
+                    post: post,
+                    author: _authorProfiles[post.authorProfileId],
+                    isAdmin: isCreator,
+                    isGeneral: isGeneral,
+                    onTapProfile: () =>
+                        _showStudentProfileModal(post.authorProfileId),
+                    onDelete: () async {
+                      await client.communityPost.deletePost(
+                        post.id!,
+                        currentProfileId!,
+                      );
+                      _loadData();
+                    },
+                  ),
+
+                const SizedBox(height: 20),
               ],
             ),
+          ),
+          // Bottom Chat Composer Bar (Visible when member or in General Discussion)
+          if (_isMember || isGeneral)
+            _buildBottomChatComposer(isGeneral),
+        ],
+      ),
+    );
+  }
+
+  /// Modern bottom chat composer bar for instant messaging
+  Widget _buildBottomChatComposer(bool isGeneral) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 12,
+        right: 12,
+        top: 10,
+        bottom: MediaQuery.of(context).viewInsets.bottom > 0
+            ? MediaQuery.of(context).viewInsets.bottom + 10
+            : MediaQuery.of(context).padding.bottom + 10,
+      ),
+      decoration: BoxDecoration(
+        color: CampusTheme.darkSurface,
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.post_add_rounded,
+                color: CampusTheme.mint, size: 22),
+            tooltip: 'Create Titled Post / Topic',
+            onPressed: _showCreatePostDialog,
+          ),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: CampusTheme.darkCard,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: CampusTheme.primaryOrange.withValues(alpha: 0.35),
+                  width: 1,
+                ),
+              ),
+              child: TextField(
+                controller: _chatController,
+                minLines: 1,
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(fontSize: 14, color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: isGeneral
+                      ? '💬 Chat in General Discussion...'
+                      : '💬 Message in ${widget.community.name}...',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: CampusTheme.textMuted.withValues(alpha: 0.7),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  border: InputBorder.none,
+                ),
+                onSubmitted: (_) => _sendChatMessage(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [CampusTheme.primaryOrange, CampusTheme.coral],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: CampusTheme.primaryOrange.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded,
+                      color: Colors.white, size: 18),
+              onPressed: _isSending ? null : _sendChatMessage,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Displays detailed profile of student posting or chatting
+  void _showStudentProfileModal(int authorProfileId) {
+    final profile = _authorProfiles[authorProfileId];
+    if (profile == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CampusTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [CampusTheme.primaryOrange, CampusTheme.coral],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      _getInitials(profile.displayName),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              profile.displayName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.verified_rounded,
+                            size: 16,
+                            color: CampusTheme.mint,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        profile.email,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: CampusTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: CampusTheme.darkSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+              child: Column(
+                children: [
+                  _modalInfoRow(
+                    Icons.school_rounded,
+                    'Department',
+                    profile.department ?? 'Campus Student',
+                    CampusTheme.primaryOrange,
+                  ),
+                  const Divider(height: 18, color: Colors.white12),
+                  _modalInfoRow(
+                    Icons.calendar_today_rounded,
+                    'Academic Year',
+                    profile.year != null ? 'Year ${profile.year}' : 'Active Student',
+                    CampusTheme.mint,
+                  ),
+                  const Divider(height: 18, color: Colors.white12),
+                  _modalInfoRow(
+                    Icons.badge_rounded,
+                    'Role',
+                    profile.role == 'admin' ? 'Campus Administrator' : 'Verified Student',
+                    CampusTheme.coral,
+                  ),
+                ],
+              ),
+            ),
+            if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'About',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                profile.bio!,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: CampusTheme.textLight,
+                  height: 1.4,
+                ),
+              ),
+            ],
+            if (profile.studySubjects.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Study Subjects & Skills',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: profile.studySubjects
+                    .map((s) => Chip(
+                          label: Text(s, style: const TextStyle(fontSize: 11)),
+                          backgroundColor: CampusTheme.darkSurface,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ))
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _modalInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 12),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: CampusTheme.textMuted),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _PostCard extends StatelessWidget {
   final CommunityPost post;
+  final StudentProfile? author;
   final bool isAdmin;
+  final bool isGeneral;
+  final VoidCallback onTapProfile;
   final VoidCallback onDelete;
 
   const _PostCard({
     required this.post,
+    required this.author,
     required this.isAdmin,
+    required this.isGeneral,
+    required this.onTapProfile,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    final isMe = post.authorProfileId == currentProfileId;
+    final authorName = author?.displayName ??
+        (isMe ? 'You' : 'Student #${post.authorProfileId}');
+    final authorDept = author?.department ?? 'Campus Student';
+    final authorYear = author?.year != null ? ' · Year ${author!.year}' : '';
+    final isAuthorAdmin = author?.role == 'admin' ||
+        author?.email == 'siddhidheer1@gmail.com' ||
+        author?.email == 'lavanyaupta136@gmail.com' ||
+        author?.email == 'aggarwaldivyanshi80@gmail.com';
+
+    final isChatMessage = post.title.trim() == post.content.trim() ||
+        post.title.startsWith('Chat') ||
+        post.content.startsWith(post.title.replaceAll('...', ''));
+
+    final initials = _getInitials(authorName);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: isMe
+            ? CampusTheme.primaryOrange.withValues(alpha: 0.08)
+            : CampusTheme.darkCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isMe
+              ? CampusTheme.primaryOrange.withValues(alpha: 0.35)
+              : post.isPinned
+                  ? CampusTheme.coral.withValues(alpha: 0.4)
+                  : Colors.white.withValues(alpha: 0.06),
+          width: post.isPinned ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                if (post.isPinned)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Icon(Icons.push_pin,
-                        size: 14, color: CampusTheme.coral),
-                  ),
-                Expanded(
-                  child: Text(
-                    post.title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+            // Author Details Header (with Name, Department, Year & Verified Badge)
+            InkWell(
+              onTap: onTapProfile,
+              borderRadius: BorderRadius.circular(10),
+              child: Row(
+                children: [
+                  // Author Avatar Circle
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isMe
+                            ? [CampusTheme.primaryOrange, CampusTheme.amberOrange]
+                            : isAuthorAdmin
+                                ? [CampusTheme.coral, CampusTheme.amberOrange]
+                                : [CampusTheme.mint, const Color(0xFF00B4D8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isMe ? CampusTheme.primaryOrange : CampusTheme.mint)
+                              .withValues(alpha: 0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                PopupMenuButton(
-                  icon: const Icon(Icons.more_vert, size: 18),
-                  itemBuilder: (_) => [
-                    if (isAdmin || post.authorProfileId == currentProfileId)
+                  const SizedBox(width: 10),
+                  // Name and Department/Year Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                authorName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.verified_rounded,
+                              size: 14,
+                              color: CampusTheme.mint,
+                            ),
+                            if (isMe) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: CampusTheme.primaryOrange
+                                      .withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'You',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: CampusTheme.primaryOrange,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (isAuthorAdmin) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: CampusTheme.coral.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Admin',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: CampusTheme.coral,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                '$authorDept$authorYear',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: CampusTheme.textMuted
+                                      .withValues(alpha: 0.9),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              ' · ${_formatDate(post.createdAt)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: CampusTheme.textMuted
+                                      .withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (post.isPinned)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: CampusTheme.coral.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.push_pin,
+                          size: 14,
+                          color: CampusTheme.coral,
+                        ),
+                      ),
+                    ),
+                  // Actions menu
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: 18,
+                      color: CampusTheme.textMuted.withValues(alpha: 0.7),
+                    ),
+                    itemBuilder: (_) => [
                       const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete Post'),
+                        value: 'profile',
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_outline,
+                                size: 16, color: CampusTheme.mint),
+                            SizedBox(width: 8),
+                            Text('View Student Details'),
+                          ],
+                        ),
                       ),
-                    const PopupMenuItem(
-                      value: 'report',
-                      child: Row(
-                        children: [
-                          Icon(Icons.flag_outlined,
-                              size: 16, color: CampusTheme.coral),
-                          SizedBox(width: 8),
-                          Text('Report Post',
-                              style: TextStyle(color: Colors.white)),
-                        ],
+                      if (isAdmin || post.authorProfileId == currentProfileId)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline,
+                                  size: 16, color: CampusTheme.coral),
+                              SizedBox(width: 8),
+                              Text('Delete'),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'report',
+                        child: Row(
+                          children: [
+                            Icon(Icons.flag_outlined,
+                                size: 16, color: CampusTheme.coral),
+                            SizedBox(width: 8),
+                            Text('Report Message'),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                  onSelected: (v) {
-                    if (v == 'delete') {
-                      onDelete();
-                    } else if (v == 'report') {
-                      CampusSafetyManager.showReportModal(
-                        context,
-                        currentUserId: currentProfileId ?? 1,
-                        targetType: 'post',
-                        targetId: post.id ?? 0,
-                        targetName: post.title,
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              post.content,
-              style: const TextStyle(
-                fontSize: 14,
-                color: CampusTheme.textMuted,
-                height: 1.5,
+                    ],
+                    onSelected: (v) {
+                      if (v == 'profile') {
+                        onTapProfile();
+                      } else if (v == 'delete') {
+                        onDelete();
+                      } else if (v == 'report') {
+                        CampusSafetyManager.showReportModal(
+                          context,
+                          currentUserId: currentProfileId ?? 1,
+                          targetType: 'post',
+                          targetId: post.id ?? 0,
+                          targetName: post.title,
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),
+            // Message / Post content
+            if (!isChatMessage) ...[
+              Text(
+                post.title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
             Text(
-              _formatDate(post.createdAt),
+              post.content,
               style: TextStyle(
-                fontSize: 11,
-                color: CampusTheme.textMuted.withValues(alpha: 0.6),
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.95),
+                height: 1.45,
               ),
             ),
           ],
@@ -1491,9 +2130,17 @@ class _PostCard extends StatelessWidget {
 
   String _formatDate(DateTime dt) {
     final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 45) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${dt.day}/${dt.month}/${dt.year}';
   }
+}
+
+String _getInitials(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty || parts[0].isEmpty) return 'S';
+  if (parts.length == 1) return parts[0][0].toUpperCase();
+  return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
 }
