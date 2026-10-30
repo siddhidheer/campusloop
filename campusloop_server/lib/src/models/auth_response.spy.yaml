@@ -1,0 +1,9 @@
+class: AuthResponse
+fields:
+  success: bool
+  message: String
+  profile: StudentProfile?
+  requiresOtp: bool?
+  email: String?
+  role: String?
+  canCreateCommunity: bool?

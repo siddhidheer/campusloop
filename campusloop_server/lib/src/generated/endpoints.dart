@@ -23,7 +23,9 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _iais;
+import '../endpoints/auth_endpoint.dart' as _iyggisn2;
 import '../endpoints/campus_update_endpoint.dart' as _icibaipm;
+import '../endpoints/community_admin_endpoint.dart' as _i2mp4fp9;
 import '../endpoints/community_endpoint.dart' as _ijv9oep2;
 import '../endpoints/community_post_endpoint.dart' as _iv2ugp3r;
 import '../endpoints/event_endpoint.dart' as _icw8lb6p;
@@ -35,10 +37,22 @@ class Endpoints extends _is.EndpointDispatch {
   @override
   void initializeEndpoints(_is.Server server) {
     var endpoints = <String, _is.Endpoint>{
+      'auth': _iyggisn2.AuthEndpoint()
+        ..initialize(
+          server,
+          'auth',
+          null,
+        ),
       'campusUpdate': _icibaipm.CampusUpdateEndpoint()
         ..initialize(
           server,
           'campusUpdate',
+          null,
+        ),
+      'communityAdmin': _i2mp4fp9.CommunityAdminEndpoint()
+        ..initialize(
+          server,
+          'communityAdmin',
           null,
         ),
       'community': _ijv9oep2.CommunityEndpoint()
@@ -78,6 +92,146 @@ class Endpoints extends _is.EndpointDispatch {
           null,
         ),
     };
+    connectors['auth'] = _is.EndpointConnector(
+      name: 'auth',
+      endpoint: endpoints['auth']!,
+      methodConnectors: {
+        'requestRegistrationOtp': _is.MethodConnector(
+          name: 'requestRegistrationOtp',
+          params: {
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['auth'] as _iyggisn2.AuthEndpoint)
+                  .requestRegistrationOtp(
+            session,
+            params['email'],
+          ),
+        ),
+        'verifyOtp': _is.MethodConnector(
+          name: 'verifyOtp',
+          params: {
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'enteredOtp': _is.ParameterDescription(
+              name: 'enteredOtp',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['auth'] as _iyggisn2.AuthEndpoint).verifyOtp(
+            session,
+            params['email'],
+            params['enteredOtp'],
+          ),
+        ),
+        'completeRegistration': _is.MethodConnector(
+          name: 'completeRegistration',
+          params: {
+            'displayName': _is.ParameterDescription(
+              name: 'displayName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'password': _is.ParameterDescription(
+              name: 'password',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'otp': _is.ParameterDescription(
+              name: 'otp',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'department': _is.ParameterDescription(
+              name: 'department',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'year': _is.ParameterDescription(
+              name: 'year',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'bio': _is.ParameterDescription(
+              name: 'bio',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'studySubjects': _is.ParameterDescription(
+              name: 'studySubjects',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+            'interests': _is.ParameterDescription(
+              name: 'interests',
+              type: _is.getType<List<String>>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['auth'] as _iyggisn2.AuthEndpoint)
+                  .completeRegistration(
+            session,
+            displayName: params['displayName'],
+            email: params['email'],
+            password: params['password'],
+            otp: params['otp'],
+            department: params['department'],
+            year: params['year'],
+            bio: params['bio'],
+            studySubjects: params['studySubjects'],
+            interests: params['interests'],
+          ),
+        ),
+        'login': _is.MethodConnector(
+          name: 'login',
+          params: {
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'password': _is.ParameterDescription(
+              name: 'password',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['auth'] as _iyggisn2.AuthEndpoint).login(
+            session,
+            params['email'],
+            params['password'],
+          ),
+        ),
+      },
+    );
     connectors['campusUpdate'] = _is.EndpointConnector(
       name: 'campusUpdate',
       endpoint: endpoints['campusUpdate']!,
@@ -213,6 +367,293 @@ class Endpoints extends _is.EndpointDispatch {
         ),
       },
     );
+    connectors['communityAdmin'] = _is.EndpointConnector(
+      name: 'communityAdmin',
+      endpoint: endpoints['communityAdmin']!,
+      methodConnectors: {
+        'isAdministrator': _is.MethodConnector(
+          name: 'isAdministrator',
+          params: {
+            'profileId': _is.ParameterDescription(
+              name: 'profileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .isAdministrator(
+            session,
+            params['profileId'],
+          ),
+        ),
+        'canCreateCommunity': _is.MethodConnector(
+          name: 'canCreateCommunity',
+          params: {
+            'profileId': _is.ParameterDescription(
+              name: 'profileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .canCreateCommunity(
+            session,
+            params['profileId'],
+          ),
+        ),
+        'searchUserByEmail': _is.MethodConnector(
+          name: 'searchUserByEmail',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .searchUserByEmail(
+            session,
+            params['adminProfileId'],
+            params['email'],
+          ),
+        ),
+        'grantPermission': _is.MethodConnector(
+          name: 'grantPermission',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'targetEmail': _is.ParameterDescription(
+              name: 'targetEmail',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'reason': _is.ParameterDescription(
+              name: 'reason',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .grantPermission(
+            session,
+            params['adminProfileId'],
+            params['targetEmail'],
+            reason: params['reason'],
+          ),
+        ),
+        'revokePermission': _is.MethodConnector(
+          name: 'revokePermission',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'targetEmail': _is.ParameterDescription(
+              name: 'targetEmail',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'reason': _is.ParameterDescription(
+              name: 'reason',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .revokePermission(
+            session,
+            params['adminProfileId'],
+            params['targetEmail'],
+            reason: params['reason'],
+          ),
+        ),
+        'listAuthorizedUsers': _is.MethodConnector(
+          name: 'listAuthorizedUsers',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .listAuthorizedUsers(
+            session,
+            params['adminProfileId'],
+          ),
+        ),
+        'getAuditLogs': _is.MethodConnector(
+          name: 'getAuditLogs',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .getAuditLogs(
+            session,
+            params['adminProfileId'],
+            limit: params['limit'],
+          ),
+        ),
+        'getSpamRules': _is.MethodConnector(
+          name: 'getSpamRules',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            )
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .getSpamRules(
+            session,
+            params['adminProfileId'],
+          ),
+        ),
+        'addSpamRule': _is.MethodConnector(
+          name: 'addSpamRule',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'pattern': _is.ParameterDescription(
+              name: 'pattern',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'category': _is.ParameterDescription(
+              name: 'category',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .addSpamRule(
+            session,
+            params['adminProfileId'],
+            params['pattern'],
+            params['category'],
+          ),
+        ),
+        'toggleSpamRule': _is.MethodConnector(
+          name: 'toggleSpamRule',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'ruleId': _is.ParameterDescription(
+              name: 'ruleId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'isEnabled': _is.ParameterDescription(
+              name: 'isEnabled',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .toggleSpamRule(
+            session,
+            params['adminProfileId'],
+            params['ruleId'],
+            params['isEnabled'],
+          ),
+        ),
+        'getModerationLogs': _is.MethodConnector(
+          name: 'getModerationLogs',
+          params: {
+            'adminProfileId': _is.ParameterDescription(
+              name: 'adminProfileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityAdmin'] as _i2mp4fp9.CommunityAdminEndpoint)
+                  .getModerationLogs(
+            session,
+            params['adminProfileId'],
+            limit: params['limit'],
+            offset: params['offset'],
+          ),
+        ),
+      },
+    );
     connectors['community'] = _is.EndpointConnector(
       name: 'community',
       endpoint: endpoints['community']!,
@@ -260,6 +701,16 @@ class Endpoints extends _is.EndpointDispatch {
             session,
             params['communityId'],
           ),
+        ),
+        'getOrCreateGeneralDiscussion': _is.MethodConnector(
+          name: 'getOrCreateGeneralDiscussion',
+          params: {},
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['community'] as _ijv9oep2.CommunityEndpoint)
+                  .getOrCreateGeneralDiscussion(session),
         ),
         'listCommunities': _is.MethodConnector(
           name: 'listCommunities',
@@ -471,6 +922,43 @@ class Endpoints extends _is.EndpointDispatch {
                   .createPost(
             session,
             params['post'],
+          ),
+        ),
+        'checkMessageForSpam': _is.MethodConnector(
+          name: 'checkMessageForSpam',
+          params: {
+            'title': _is.ParameterDescription(
+              name: 'title',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'content': _is.ParameterDescription(
+              name: 'content',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'profileId': _is.ParameterDescription(
+              name: 'profileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call: (
+            _is.Session session,
+            Map<String, dynamic> params,
+          ) async =>
+              (endpoints['communityPost'] as _iv2ugp3r.CommunityPostEndpoint)
+                  .checkMessageForSpam(
+            session,
+            params['title'],
+            params['content'],
+            profileId: params['profileId'],
+            email: params['email'],
           ),
         ),
         'listPosts': _is.MethodConnector(

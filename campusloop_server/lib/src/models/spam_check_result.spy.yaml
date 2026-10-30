@@ -1,0 +1,6 @@
+class: SpamCheckResult
+fields:
+  isSpam: bool
+  reason: String?
+  friendlyFeedback: String?
+  matchedRule: String?

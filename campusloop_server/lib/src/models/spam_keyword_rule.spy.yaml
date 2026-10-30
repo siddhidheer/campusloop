@@ -1,0 +1,11 @@
+class: SpamKeywordRule
+table: spam_keyword_rule
+fields:
+  pattern: String
+  category: String
+  severity: String
+  isEnabled: bool
+  createdAt: DateTime
+indexes:
+  skr_pattern_idx:
+    fields: pattern

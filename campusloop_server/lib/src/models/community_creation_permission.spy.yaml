@@ -1,0 +1,13 @@
+class: CommunityCreationPermission
+table: community_creation_permission
+fields:
+  email: String
+  profileId: int
+  grantedByEmail: String
+  grantedByProfileId: int
+  grantedAt: DateTime
+  revokedAt: DateTime?
+  isActive: bool
+indexes:
+  ccp_email_idx:
+    fields: email

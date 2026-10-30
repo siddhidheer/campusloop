@@ -7,6 +7,7 @@ import '../../models/campus_safety_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import '../app_shell.dart';
+import 'email_otp_dialog.dart';
 
 /// Comprehensive Student Authentication & Onboarding Screen.
 ///
@@ -47,7 +48,6 @@ class _LoginScreenState extends State<LoginScreen>
   final _whatsappController = TextEditingController();
   int _selectedYear = 1;
   bool _obscurePassword = true;
-  bool _isCampusEmailVerified = false;
 
   final Set<String> _selectedSubjects = {
     'Computer Science',
@@ -148,6 +148,24 @@ class _LoginScreenState extends State<LoginScreen>
     _loadSavedCredentials();
   }
 
+  /// Strict Gmail validation regex & anti-disposable rules
+  bool _isValidGmail(String email) {
+    final trimmed = email.trim().toLowerCase();
+    if (trimmed.isEmpty) return false;
+    if (!trimmed.endsWith('@gmail.com')) return false;
+    if (trimmed.contains('+') ||
+        trimmed.contains('trash') ||
+        trimmed.contains('temp') ||
+        trimmed.contains('fake')) {
+      return false;
+    }
+    final regex = RegExp(
+      r'^[a-zA-Z0-9](?!.*\.\.)[a-zA-Z0-9.]{4,28}[a-zA-Z0-9]@gmail\.com$',
+      caseSensitive: false,
+    );
+    return regex.hasMatch(trimmed);
+  }
+
   /// Automatically load saved email & password from persistent storage
   Future<void> _loadSavedCredentials() async {
     try {
@@ -155,7 +173,12 @@ class _LoginScreenState extends State<LoginScreen>
       final savedEmail = prefs.getString('saved_login_email') ?? '';
       final savedPwd = prefs.getString('saved_login_pwd') ?? '';
       final savedUniv = prefs.getString('saved_login_university') ?? '';
+      final savedProfileId = prefs.getInt('saved_profile_id');
+      final savedToken = prefs.getString('saved_session_token');
 
+      if (savedProfileId != null) {
+        currentProfileId = savedProfileId;
+      }
       if (savedUniv.isNotEmpty && mounted) {
         _universityController.text = savedUniv;
       }
@@ -166,6 +189,19 @@ class _LoginScreenState extends State<LoginScreen>
           // Default to Existing User tab when saved credentials exist
           _isNewUser = false;
         });
+
+        // If authenticated session exists, validate seamlessly across restarts
+        if (savedToken != null && savedToken.isNotEmpty && savedPwd.isNotEmpty) {
+          try {
+            final authRes = await client.auth.login(savedEmail, savedPwd);
+            if (authRes.success && mounted) {
+              currentProfileId = authRes.profile?.id ?? savedProfileId;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const AppShell()),
+              );
+            }
+          } catch (_) {}
+        }
       }
     } catch (_) {}
   }
@@ -319,219 +355,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  /// Opens OTP / Campus affiliation verification dialog for trusted student validation
-  Future<void> _openCampusVerificationDialog() async {
-    final email = _emailController.text.trim();
-    final univ = _universityController.text.trim();
-    final codeCtrl = TextEditingController();
-    String? localError;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: CampusTheme.darkCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: CampusTheme.mint.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.verified_user_rounded,
-                      color: CampusTheme.mint,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Campus Student Verification',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          'Verify your college identity for a trusted peer network',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: CampusTheme.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: CampusTheme.darkSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Institute: ${univ.isNotEmpty ? univ : "Your College / Institute"}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Email: ${email.isNotEmpty ? email : "Enter email above"}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: CampusTheme.softBlue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Enter 4-Digit Verification Code',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: CampusTheme.textLight,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: codeCtrl,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                style: const TextStyle(
-                  fontSize: 20,
-                  letterSpacing: 8,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  hintText: '••••',
-                  prefixIcon: const Icon(Icons.pin_outlined),
-                  errorText: localError,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Text(
-                    'Campus Instant Code: ',
-                    style: TextStyle(fontSize: 11, color: CampusTheme.textMuted),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      setSheetState(() {
-                        codeCtrl.text = '2026';
-                        localError = null;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: CampusTheme.mint.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'Tap to autofill 2026',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: CampusTheme.mint,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: const Text('Verify Campus ID'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: CampusTheme.mint,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () async {
-                    if (codeCtrl.text.trim().length < 4) {
-                      setSheetState(() => localError = 'Enter 4-digit code (or tap 2026)');
-                      return;
-                    }
-                    if (email.isNotEmpty) {
-                      await CampusSafetyManager.setVerified(email, true);
-                    }
-                    setState(() {
-                      _isCampusEmailVerified = true;
-                    });
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('🛡️ Campus Affiliation Verified! Verified badge unlocked.'),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: CampusTheme.mint,
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Register a brand new student profile with duplicate email protection & validation feedback
+  /// Register a brand new student profile with Gmail OTP verification
   Future<void> _handleRegisterNewUser() async {
-    // 1. Validate all fields
+    // 1. Validate all form fields
     if (!_formKey.currentState!.validate()) {
       _scrollController.animateTo(
         0,
@@ -542,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              '⚠️ Please fill in all required fields (Name, Email, University, Password, Department)'),
+              '⚠️ Please fill in all required fields with a valid @gmail.com address'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: CampusTheme.coral,
           duration: Duration(seconds: 3),
@@ -558,6 +384,14 @@ class _LoginScreenState extends State<LoginScreen>
     final dept = _deptController.text.trim();
     final bio = _bioController.text.trim();
 
+    if (!_isValidGmail(email)) {
+      setState(() {
+        _error =
+            'Only genuine Google-created Gmail accounts (@gmail.com) are allowed to register.';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -565,207 +399,99 @@ class _LoginScreenState extends State<LoginScreen>
     ScaffoldMessenger.of(context).clearSnackBars();
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final localRegisteredEmails =
-          prefs.getStringList('registered_emails') ?? [];
-
-      // Check if email is already registered locally or on Serverpod Cloud
-      StudentProfile? existingOnServer;
-      try {
-        existingOnServer = await client.profile.getProfileByEmail(email);
-      } catch (_) {
-        existingOnServer = null;
-      }
-
-      if (localRegisteredEmails.contains(email) || existingOnServer != null) {
-        final storedPwd = prefs.getString('pwd_$email');
-        if (storedPwd != null && storedPwd.isNotEmpty && storedPwd == password) {
-          // Password matches! Seamlessly log student in
-          currentProfileId = existingOnServer?.id ?? 1;
-          await prefs.setString('saved_login_email', email);
-          await prefs.setString('saved_login_pwd', password);
-          if (university.isNotEmpty) {
-            await prefs.setString('university_$email', university);
-            await prefs.setString('current_university', university);
-            await prefs.setString('saved_login_university', university);
-          }
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).clearSnackBars();
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const AppShell()),
-            );
-          }
-          return;
-        }
-
-        // Inform user clearly both via in-card message and floating SnackBar with 1-tap Sign In
+      // Step 1: Request 6-digit OTP from Serverpod backend
+      final otpRes = await client.auth.requestRegistrationOtp(email);
+      if (!otpRes.success) {
         setState(() {
           _isLoading = false;
-          _error =
-              'Email already registered. Please sign in as an Existing User.';
+          _error = otpRes.message;
         });
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOut,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Email already registered! Tap to sign in.'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: CampusTheme.coral,
-              duration: const Duration(seconds: 4),
-              action: SnackBarAction(
-                label: 'Sign In',
-                textColor: Colors.white,
-                onPressed: () {
-                  setState(() {
-                    _isNewUser = false;
-                    _error = null;
-                    _signInEmailController.text = email;
-                    _signInPasswordController.text = password;
-                  });
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                },
-              ),
-            ),
-          );
-        }
         return;
       }
 
-      final socials = StudentSocials(
-        discord: _discordController.text.trim().isNotEmpty
-            ? _discordController.text.trim()
-            : null,
-        linkedin: _linkedinController.text.trim().isNotEmpty
-            ? _linkedinController.text.trim()
-            : null,
-        whatsapp: _whatsappController.text.trim().isNotEmpty
-            ? _whatsappController.text.trim()
-            : null,
-      );
-      final rawBio = StudentSocials.embedInBio(bio, socials);
+      setState(() => _isLoading = false);
 
-      // Create new profile on Serverpod Cloud database
-      final now = DateTime.now();
-      StudentProfile? newProfile;
-      try {
-        newProfile = await client.profile.createProfile(
-          StudentProfile(
+      // Step 2: Show secure OTP verification dialog
+      if (!mounted) return;
+      final verified = await EmailOtpDialog.show(
+        context,
+        email: email,
+        onVerify: (otp) async {
+          final socials = StudentSocials(
+            discord: _discordController.text.trim().isNotEmpty
+                ? _discordController.text.trim()
+                : null,
+            linkedin: _linkedinController.text.trim().isNotEmpty
+                ? _linkedinController.text.trim()
+                : null,
+            whatsapp: _whatsappController.text.trim().isNotEmpty
+                ? _whatsappController.text.trim()
+                : null,
+          );
+          final rawBio = StudentSocials.embedInBio(bio, socials);
+
+
+          final authRes = await client.auth.completeRegistration(
             displayName: name,
             email: email,
+            password: password,
+            otp: otp,
             department: dept.isNotEmpty ? dept : 'General Studies',
             year: _selectedYear,
             bio: rawBio.isNotEmpty ? rawBio : 'CampusLoop student from $dept',
             studySubjects: _selectedSubjects.toList(),
             interests: _selectedInterests.toList(),
-            createdAt: now,
-            updatedAt: now,
+          );
+
+          if (!authRes.success) {
+            throw Exception(authRes.message);
+          }
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('saved_login_email', email);
+          await prefs.setString('saved_login_pwd', password);
+          await prefs.setString('saved_session_token', 'session_${email}_${DateTime.now().millisecondsSinceEpoch}');
+          await prefs.setString('current_user_email', email);
+          await prefs.setString('current_user_role', authRes.profile?.role ?? 'student');
+          await prefs.setBool('current_user_can_create_community', authRes.profile?.canCreateCommunity ?? false);
+          if (authRes.profile?.id != null) {
+            await prefs.setInt('saved_profile_id', authRes.profile!.id!);
+            currentProfileId = authRes.profile!.id!;
+          }
+
+          if (university.isNotEmpty) {
+            await prefs.setString('university_$email', university);
+            await prefs.setString('current_university', university);
+            await prefs.setString('saved_login_university', university);
+          }
+          await StudentSocials.saveLocalSocials(email, socials);
+          await CampusSafetyManager.setVerified(email, true);
+        },
+        onResend: () async {
+          final res = await client.auth.requestRegistrationOtp(email);
+          return res.message;
+        },
+      );
+
+      if (verified == true && mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🎉 Email verified successfully! Welcome to CampusLoop.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.mint,
+            duration: Duration(seconds: 4),
           ),
         );
-      } catch (err) {
-        final msg = err.toString().toLowerCase();
-        if (msg.contains('already exists') ||
-            msg.contains('unique') ||
-            msg.contains('duplicate')) {
-          setState(() {
-            _isLoading = false;
-            _error =
-                'Email already registered. Please sign in as an Existing User.';
-          });
-          _scrollController.animateTo(180,
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOut);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content:
-                    const Text('Email already registered! Tap to sign in.'),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: CampusTheme.coral,
-                action: SnackBarAction(
-                  label: 'Sign In',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    setState(() {
-                      _isNewUser = false;
-                      _error = null;
-                      _signInEmailController.text = email;
-                      _signInPasswordController.text = password;
-                    });
-                  },
-                ),
-              ),
-            );
-          }
-          return;
-        }
-        newProfile = null;
-      }
-
-      // Persistently remember credentials and university
-      await prefs.setString('pwd_$email', password);
-      await prefs.setString('name_$email', name);
-      if (university.isNotEmpty) {
-        await prefs.setString('university_$email', university);
-        await prefs.setString('current_university', university);
-        await prefs.setString('saved_login_university', university);
-      }
-      if (!localRegisteredEmails.contains(email)) {
-        localRegisteredEmails.add(email);
-        await prefs.setStringList('registered_emails', localRegisteredEmails);
-      }
-      await prefs.setString('saved_login_email', email);
-      await prefs.setString('saved_login_pwd', password);
-      await StudentSocials.saveLocalSocials(email, socials);
-      if (_isCampusEmailVerified || await CampusSafetyManager.isVerified(email)) {
-        await CampusSafetyManager.setVerified(email, true);
-      }
-
-      currentProfileId = newProfile?.id ?? 1;
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const AppShell()),
         );
       }
     } catch (e) {
-      // Guaranteed entry so student is never stranded
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('pwd_$email', password);
-        await prefs.setString('name_$email', name);
-        if (university.isNotEmpty) {
-          await prefs.setString('university_$email', university);
-          await prefs.setString('current_university', university);
-          await prefs.setString('saved_login_university', university);
-        }
-        await prefs.setString('saved_login_email', email);
-        await prefs.setString('saved_login_pwd', password);
-        final localRegisteredEmails =
-            prefs.getStringList('registered_emails') ?? [];
-        if (!localRegisteredEmails.contains(email)) {
-          localRegisteredEmails.add(email);
-          await prefs.setStringList('registered_emails', localRegisteredEmails);
-        }
-        if (_isCampusEmailVerified || await CampusSafetyManager.isVerified(email)) {
-          await CampusSafetyManager.setVerified(email, true);
-        }
-      } catch (_) {}
-
-      currentProfileId = 1;
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AppShell()),
-        );
-      }
+      setState(() {
+        _isLoading = false;
+        _error = e.toString().replaceAll('Exception: ', '');
+      });
     }
   }
 
@@ -776,7 +502,7 @@ class _LoginScreenState extends State<LoginScreen>
           duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ Please enter your registered email and password'),
+          content: Text('⚠️ Please enter your registered Gmail address and password'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: CampusTheme.coral,
         ),
@@ -787,89 +513,97 @@ class _LoginScreenState extends State<LoginScreen>
     final email = _signInEmailController.text.trim().toLowerCase();
     final password = _signInPasswordController.text;
 
+    if (!_isValidGmail(email)) {
+      setState(() {
+        _error = 'Please enter a valid @gmail.com address.';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final storedPwd = prefs.getString('pwd_$email');
-      final localRegisteredEmails =
-          prefs.getStringList('registered_emails') ?? [];
+      final authRes = await client.auth.login(email, password);
 
-      // Query Serverpod Cloud database
-      StudentProfile? profile;
-      try {
-        profile = await client.profile.getProfileByEmail(email);
-      } catch (_) {
-        profile = null;
-      }
+      if (!authRes.success) {
+        setState(() => _isLoading = false);
 
-      final exists = profile != null ||
-          localRegisteredEmails.contains(email) ||
-          storedPwd != null;
+        // If user account is unverified, prompt email verification OTP immediately
+        if (authRes.requiresOtp == true) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authRes.message),
+              backgroundColor: CampusTheme.amberOrange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
 
-      if (!exists) {
+          final verified = await EmailOtpDialog.show(
+            context,
+            email: email,
+            onVerify: (otp) async {
+              final vRes = await client.auth.verifyOtp(email, otp);
+              if (!vRes.success) {
+                throw Exception(vRes.message);
+              }
+              // Retry login with verified status
+              final retryRes = await client.auth.login(email, password);
+              if (!retryRes.success) {
+                throw Exception(retryRes.message);
+              }
+              final prefs = await SharedPreferences.getInstance();
+              if (_rememberMe) {
+                await prefs.setString('saved_login_email', email);
+                await prefs.setString('saved_login_pwd', password);
+              }
+              await prefs.setString('saved_session_token', 'session_${email}_${DateTime.now().millisecondsSinceEpoch}');
+              await prefs.setString('current_user_email', email);
+              await prefs.setString('current_user_role', retryRes.profile?.role ?? 'student');
+              await prefs.setBool('current_user_can_create_community', retryRes.profile?.canCreateCommunity ?? false);
+              if (retryRes.profile?.id != null) {
+                await prefs.setInt('saved_profile_id', retryRes.profile!.id!);
+                currentProfileId = retryRes.profile!.id!;
+              }
+              await CampusSafetyManager.setVerified(email, true);
+            },
+            onResend: () async {
+              final res = await client.auth.requestRegistrationOtp(email);
+              return res.message;
+            },
+          );
+
+          if (verified == true && mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const AppShell()),
+            );
+          }
+          return;
+        }
+
+        // Incorrect credentials or rejection
         setState(() {
-          _isLoading = false;
-          _error =
-              'No account found with this email. Please select New User to register.';
+          _error = authRes.message;
         });
         if (mounted) {
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-                  const Text('No account found! Tap to register as New User.'),
+              content: Text(authRes.message),
               behavior: SnackBarBehavior.floating,
               backgroundColor: CampusTheme.coral,
               duration: const Duration(seconds: 4),
-              action: SnackBarAction(
-                label: 'Register',
-                textColor: Colors.white,
-                onPressed: () {
-                  setState(() {
-                    _isNewUser = true;
-                    _error = null;
-                    _emailController.text = email;
-                    _passwordController.text = password;
-                  });
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                },
-              ),
             ),
           );
         }
         return;
       }
 
-      // Validate password if stored
-      if (storedPwd != null && storedPwd.isNotEmpty) {
-        if (storedPwd != password) {
-          setState(() {
-            _isLoading = false;
-            _error = 'Incorrect password. Please try again.';
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).clearSnackBars();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Incorrect password. Please try again.'),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: CampusTheme.coral,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-          return;
-        }
-      } else {
-        // First login on this device for an existing server account
-        await prefs.setString('pwd_$email', password);
-      }
-
-      // Remember credentials based on checkbox
+      // Login successful!
+      final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setString('saved_login_email', email);
         await prefs.setString('saved_login_pwd', password);
@@ -878,13 +612,20 @@ class _LoginScreenState extends State<LoginScreen>
         await prefs.remove('saved_login_pwd');
       }
 
-      currentProfileId = profile?.id ?? 1;
+      await prefs.setString('saved_session_token', 'session_${email}_${DateTime.now().millisecondsSinceEpoch}');
+      await prefs.setString('current_user_email', email);
+      await prefs.setString('current_user_role', authRes.profile?.role ?? 'student');
+      await prefs.setBool('current_user_can_create_community', authRes.profile?.canCreateCommunity ?? false);
+      if (authRes.profile?.id != null) {
+        await prefs.setInt('saved_profile_id', authRes.profile!.id!);
+        currentProfileId = authRes.profile!.id!;
+      }
 
-      // Update current university from saved prefs if present
       final savedUniv = prefs.getString('university_$email');
       if (savedUniv != null && savedUniv.isNotEmpty) {
         await prefs.setString('current_university', savedUniv);
       }
+      await CampusSafetyManager.setVerified(email, true);
 
       if (mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
@@ -893,12 +634,17 @@ class _LoginScreenState extends State<LoginScreen>
         );
       }
     } catch (e) {
-      // Offline fallback
-      currentProfileId = 1;
+      setState(() {
+        _isLoading = false;
+        _error = 'Connection error: ${e.toString().replaceAll('Exception: ', '')}';
+      });
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AppShell()),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_error!),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: CampusTheme.coral,
+          ),
         );
       }
     }
@@ -1436,8 +1182,8 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 16),
 
-          // 2. Campus Email
-          _buildLabel('Campus Email'),
+          // 2. Campus Email (Strict Genuine Gmail Only)
+          _buildLabel('Gmail Address (Google Account)'),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
@@ -1447,66 +1193,50 @@ class _LoginScreenState extends State<LoginScreen>
               ScaffoldMessenger.of(context).clearSnackBars();
             },
             decoration: const InputDecoration(
-              hintText: 'e.g. siddhi@campus.edu',
+              hintText: 'e.g. siddhi1@gmail.com',
               prefixIcon: Icon(Icons.alternate_email_rounded,
                   color: CampusTheme.softBlue),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email address';
+                return 'Please enter your Gmail address';
               }
-              if (!value.contains('@')) {
-                return 'Please enter a valid email address';
+              if (!_isValidGmail(value.trim())) {
+                return 'Only genuine Gmail accounts (@gmail.com) are allowed';
               }
               return null;
             },
           ),
           const SizedBox(height: 6),
-          InkWell(
-            onTap: _openCampusVerificationDialog,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: _isCampusEmailVerified
-                    ? CampusTheme.mint.withValues(alpha: 0.15)
-                    : CampusTheme.softBlue.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _isCampusEmailVerified
-                      ? CampusTheme.mint.withValues(alpha: 0.4)
-                      : CampusTheme.softBlue.withValues(alpha: 0.3),
-                  width: 0.9,
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: CampusTheme.mint.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: CampusTheme.mint.withValues(alpha: 0.3),
+                width: 0.9,
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    _isCampusEmailVerified
-                        ? Icons.verified_user_rounded
-                        : Icons.shield_outlined,
-                    size: 16,
-                    color: _isCampusEmailVerified
-                        ? CampusTheme.mint
-                        : CampusTheme.softBlue,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _isCampusEmailVerified
-                          ? 'Campus Student Affiliation Verified 🛡️'
-                          : 'Verify College Email / Affiliation (Instant OTP) →',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _isCampusEmailVerified
-                            ? CampusTheme.mint
-                            : CampusTheme.softBlue,
-                      ),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.mark_email_read_rounded,
+                  size: 16,
+                  color: CampusTheme.mint,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Verification code (OTP) will be sent to your Gmail upon registration',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: CampusTheme.mint,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -1950,8 +1680,8 @@ class _LoginScreenState extends State<LoginScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Campus Email
-          _buildLabel('Registered Campus Email'),
+          // 1. Campus Email (Verified Gmail)
+          _buildLabel('Registered Gmail Address'),
           TextFormField(
             controller: _signInEmailController,
             keyboardType: TextInputType.emailAddress,
@@ -1961,16 +1691,16 @@ class _LoginScreenState extends State<LoginScreen>
               ScaffoldMessenger.of(context).clearSnackBars();
             },
             decoration: const InputDecoration(
-              hintText: 'e.g. siddhi@campus.edu',
+              hintText: 'e.g. siddhi1@gmail.com',
               prefixIcon: Icon(Icons.alternate_email_rounded,
                   color: CampusTheme.softBlue),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email address';
+                return 'Please enter your Gmail address';
               }
-              if (!value.contains('@')) {
-                return 'Please enter a valid email address';
+              if (!_isValidGmail(value.trim())) {
+                return 'Please enter a valid @gmail.com address';
               }
               return null;
             },

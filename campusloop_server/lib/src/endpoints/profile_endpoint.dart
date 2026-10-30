@@ -1,5 +1,6 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
+import '../services/rbac_service.dart';
 
 /// Endpoint for student profile operations.
 ///
@@ -41,7 +42,9 @@ class ProfileEndpoint extends Endpoint {
 
   /// Retrieve a profile by its ID.
   Future<StudentProfile?> getProfile(Session session, int profileId) async {
-    return await StudentProfile.db.findById(session, profileId);
+    final profile = await StudentProfile.db.findById(session, profileId);
+    if (profile == null) return null;
+    return await RbacService.ensurePermissions(session, profile);
   }
 
   /// Retrieve a profile by email address.
@@ -51,7 +54,8 @@ class ProfileEndpoint extends Endpoint {
       session,
       where: (t) => t.email.equals(email.trim().toLowerCase()),
     );
-    return results.isNotEmpty ? results.first : null;
+    if (results.isEmpty) return null;
+    return await RbacService.ensurePermissions(session, results.first);
   }
 
   /// Update an existing student profile.

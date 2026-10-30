@@ -1,5 +1,6 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
+import '../services/spam_moderation_service.dart';
 
 /// Endpoint for seeding development/demo data.
 ///
@@ -11,6 +12,91 @@ class SeedEndpoint extends Endpoint {
   /// Returns a summary message.
   Future<String> seedDevelopmentData(Session session) async {
     final now = DateTime.now();
+
+    // ── 0. Initial Platform Administrators ──
+    final initialAdminsData = [
+      {
+        'name': 'Siddhi Dheer',
+        'email': 'siddhidheer1@gmail.com',
+        'dept': 'Computer Science & Engineering',
+        'year': 3,
+        'subjects': ['Flutter', 'Serverpod', 'Distributed Systems'],
+        'interests': ['Hackathons', 'Cloud', 'System Architecture'],
+      },
+      {
+        'name': 'Lavanya Gupta',
+        'email': 'lavanyaupta136@gmail.com',
+        'dept': 'Artificial Intelligence & Data Science',
+        'year': 3,
+        'subjects': ['Machine Learning', 'Data Structures', 'Python'],
+        'interests': ['AI', 'Data Viz', 'Community Management'],
+      },
+      {
+        'name': 'Divyanshi Aggarwal',
+        'email': 'aggarwaldivyanshi80@gmail.com',
+        'dept': 'Information Technology',
+        'year': 3,
+        'subjects': ['Cybersecurity', 'Web Development', 'Algorithms'],
+        'interests': ['Open Source', 'Security', 'Mentorship'],
+      },
+    ];
+
+    for (final adminData in initialAdminsData) {
+      final email = adminData['email'] as String;
+      final existing = await StudentProfile.db.find(
+        session,
+        where: (t) => t.email.equals(email),
+      );
+
+      StudentProfile adminProfile;
+      if (existing.isNotEmpty) {
+        adminProfile = existing.first;
+        adminProfile
+          ..role = 'admin'
+          ..canCreateCommunity = true
+          ..isEmailVerified = true
+          ..updatedAt = now;
+        adminProfile = await StudentProfile.db.updateRow(session, adminProfile);
+      } else {
+        adminProfile = StudentProfile(
+          displayName: adminData['name'] as String,
+          email: email,
+          department: adminData['dept'] as String,
+          year: adminData['year'] as int,
+          bio: 'CampusLoop Initial Administrator & Lead Student Organizer',
+          studySubjects: List<String>.from(adminData['subjects'] as List),
+          interests: List<String>.from(adminData['interests'] as List),
+          role: 'admin',
+          canCreateCommunity: true,
+          isEmailVerified: true,
+          createdAt: now,
+          updatedAt: now,
+        );
+        adminProfile = await StudentProfile.db.insertRow(session, adminProfile);
+      }
+
+      // Ensure active CommunityCreationPermission
+      final existingPerms = await CommunityCreationPermission.db.find(
+        session,
+        where: (t) => t.email.equals(email),
+      );
+      if (existingPerms.isEmpty) {
+        await CommunityCreationPermission.db.insertRow(
+          session,
+          CommunityCreationPermission(
+            email: email,
+            profileId: adminProfile.id!,
+            grantedByEmail: 'system@campusloop.internal',
+            grantedByProfileId: 0,
+            grantedAt: now,
+            isActive: true,
+          ),
+        );
+      }
+    }
+
+    // ── 0.1 Seed Default Configurable Spam Rules ──
+    await SpamModerationService.ensureDefaultRules(session);
 
     // ── Sample Student Profiles ──
     final profiles = <StudentProfile>[];
@@ -153,6 +239,19 @@ class SeedEndpoint extends Endpoint {
 
     // ── Sample Communities ──
     final communityData = [
+      {
+        'name': 'General Discussion',
+        'desc':
+            'A common space where all registered CampusLoop users can discuss college-related topics, ask questions, share useful information, and interact with one another.',
+        'cat': 'Academic',
+        'interests': [
+          'Campus Life',
+          'Academics',
+          'Events',
+          'Q&A',
+          'Discussions',
+        ],
+      },
       {
         'name': 'Flutter Developers Club',
         'desc': 'A community for Flutter enthusiasts to share projects, '

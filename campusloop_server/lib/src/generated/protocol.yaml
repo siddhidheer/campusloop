@@ -1,3 +1,8 @@
+auth:
+  - requestRegistrationOtp:
+  - verifyOtp:
+  - completeRegistration:
+  - login:
 campusUpdate:
   - createUpdate:
   - getUpdate:
@@ -5,9 +10,22 @@ campusUpdate:
   - updateUpdate:
   - deleteUpdate:
   - getCategories:
+communityAdmin:
+  - isAdministrator:
+  - canCreateCommunity:
+  - searchUserByEmail:
+  - grantPermission:
+  - revokePermission:
+  - listAuthorizedUsers:
+  - getAuditLogs:
+  - getSpamRules:
+  - addSpamRule:
+  - toggleSpamRule:
+  - getModerationLogs:
 community:
   - createCommunity:
   - getCommunity:
+  - getOrCreateGeneralDiscussion:
   - listCommunities:
   - searchCommunities:
   - joinCommunity:
@@ -18,6 +36,7 @@ community:
   - deleteCommunity:
 communityPost:
   - createPost:
+  - checkMessageForSpam:
   - listPosts:
   - togglePin:
   - deletePost:

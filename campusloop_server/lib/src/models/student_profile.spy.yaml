@@ -8,6 +8,9 @@ fields:
   bio: String?
   studySubjects: List<String>
   interests: List<String>
+  role: String?
+  canCreateCommunity: bool?
+  isEmailVerified: bool?
   createdAt: DateTime
   updatedAt: DateTime
 indexes:

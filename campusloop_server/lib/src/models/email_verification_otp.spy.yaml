@@ -1,0 +1,14 @@
+class: EmailVerificationOtp
+table: email_verification_otp
+fields:
+  email: String
+  otpHash: String
+  salt: String
+  attempts: int
+  isUsed: bool
+  createdAt: DateTime
+  expiresAt: DateTime
+  lastSentAt: DateTime
+indexes:
+  email_verification_otp_email_idx:
+    fields: email

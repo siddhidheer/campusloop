@@ -4,6 +4,7 @@ import '../../main.dart';
 import '../../models/campus_safety_models.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
+import 'community_admin_screen.dart';
 
 /// Communities screen — browse, search, join, and manage communities.
 class CommunitiesScreen extends StatefulWidget {
@@ -19,6 +20,8 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
   bool _isLoading = true;
   String? _error;
   bool _showJoinedOnly = false;
+  bool _canCreateCommunity = false;
+  bool _isPlatformAdmin = false;
   final _searchController = TextEditingController();
 
   @override
@@ -42,12 +45,36 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       final communities =
           await client.community.listCommunities(limit: 50, offset: 0);
       final joined = await client.community.getJoinedCommunities(
-        currentProfileId!,
+        currentProfileId ?? 1,
       );
+
+      // Check community creation and admin permissions on Serverpod backend
+      bool canCreate = false;
+      bool isAdmin = false;
+      if (currentProfileId != null) {
+        try {
+          canCreate = await client.communityAdmin.canCreateCommunity(
+            currentProfileId!,
+          );
+          isAdmin = await client.communityAdmin.isAdministrator(
+            currentProfileId!,
+          );
+        } catch (_) {}
+      }
+
+      // Ensure General Discussion community is always pinned to the top
+      communities.sort((a, b) {
+        if (a.name == 'General Discussion') return -1;
+        if (b.name == 'General Discussion') return 1;
+        return b.memberCount.compareTo(a.memberCount);
+      });
+
       if (mounted) {
         setState(() {
           _communities = communities;
           _joinedCommunities = joined;
+          _canCreateCommunity = canCreate;
+          _isPlatformAdmin = isAdmin;
           _isLoading = false;
         });
       }
@@ -228,6 +255,33 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     );
   }
 
+  void _showRestrictedCreateDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: CampusTheme.darkCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_outline_rounded, color: CampusTheme.primaryOrange),
+            SizedBox(width: 10),
+            Text('Access Restricted'),
+          ],
+        ),
+        content: const Text(
+          'Community creation is initially restricted to designated platform administrators (siddhidheer1@gmail.com, lavanyaupta136@gmail.com, aggarwaldivyanshi80@gmail.com) and delegated organizers.\n\nAll verified students can freely browse, join communities, and participate in discussions.\n\nContact an administrator to request community creation privileges.',
+          style: TextStyle(height: 1.4, color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Understood'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _openCommunityDetail(Community community) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -250,6 +304,21 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
       appBar: AppBar(
         title: const Text('Communities'),
         actions: [
+          if (_isPlatformAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_rounded,
+                  color: CampusTheme.mint),
+              tooltip: 'Admin Access & Moderation',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CommunityAdminScreen(
+                      onPermissionsChanged: _loadCommunities,
+                    ),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: Icon(
               _showJoinedOnly ? Icons.group : Icons.group_outlined,
@@ -264,8 +333,18 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateCommunityDialog,
-        child: const Icon(Icons.add),
+        tooltip: _canCreateCommunity
+            ? 'Create Community'
+            : 'Community Creation Restricted',
+        backgroundColor: _canCreateCommunity
+            ? CampusTheme.primaryOrange
+            : CampusTheme.darkCardLight,
+        onPressed: _canCreateCommunity
+            ? _showCreateCommunityDialog
+            : _showRestrictedCreateDialog,
+        child: Icon(_canCreateCommunity
+            ? Icons.add
+            : Icons.lock_outline_rounded),
       ),
       body: Column(
         children: [
@@ -278,8 +357,11 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
             title: 'Campus Communities',
             subtitle:
                 'Collaborate with coding clubs, design guilds, robotics labs, and media teams.',
-            actionLabel: 'Create Club +',
-            onAction: _showCreateCommunityDialog,
+            actionLabel:
+                _canCreateCommunity ? 'Create Club +' : 'Restricted Access',
+            onAction: _canCreateCommunity
+                ? _showCreateCommunityDialog
+                : _showRestrictedCreateDialog,
           ),
 
           // Search bar
@@ -431,27 +513,46 @@ class _CommunityCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  isMember
-                      ? OutlinedButton(
-                          onPressed: onLeave,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            side: const BorderSide(
-                                color: CampusTheme.textMuted),
-                          ),
-                          child: const Text('Joined',
-                              style: TextStyle(fontSize: 12)),
-                        )
-                      : ElevatedButton(
-                          onPressed: onJoin,
+                  community.name == 'General Discussion'
+                      ? ElevatedButton.icon(
+                          onPressed: onTap,
                           style: ElevatedButton.styleFrom(
+                            backgroundColor: CampusTheme.mint,
+                            foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
+                                horizontal: 12, vertical: 6),
                           ),
-                          child: const Text('Join',
-                              style: TextStyle(fontSize: 12)),
-                        ),
+                          icon: const Icon(Icons.chat_bubble_outline_rounded,
+                              size: 14),
+                          label: const Text(
+                            'Open Forum',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : isMember
+                          ? OutlinedButton(
+                              onPressed: onLeave,
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 6),
+                                side: const BorderSide(
+                                    color: CampusTheme.textMuted),
+                              ),
+                              child: const Text('Joined',
+                                  style: TextStyle(fontSize: 12)),
+                            )
+                          : ElevatedButton(
+                              onPressed: onJoin,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 6),
+                              ),
+                              child: const Text('Join',
+                                  style: TextStyle(fontSize: 12)),
+                            ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -992,9 +1093,41 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
                 Navigator.pop(ctx);
                 _loadData();
               } catch (e) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text(e.toString())),
-                );
+                final rawMsg = e.toString().replaceAll('Exception: ', '');
+                final isSpam = rawMsg.toLowerCase().contains('spam') ||
+                    rawMsg.toLowerCase().contains('promotional');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            isSpam
+                                ? Icons.shield_rounded
+                                : Icons.error_outline_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              rawMsg,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: isSpam ? CampusTheme.coral : Colors.red,
+                      duration: Duration(seconds: isSpam ? 7 : 4),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Post'),
@@ -1009,6 +1142,7 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
     final catColor = CampusTheme.categoryColor(widget.community.category);
     final isCreator =
         widget.community.creatorProfileId == currentProfileId;
+    final isGeneral = widget.community.name == 'General Discussion';
 
     return Scaffold(
       appBar: AppBar(
@@ -1023,7 +1157,7 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
             ),
         ],
       ),
-      floatingActionButton: _isMember
+      floatingActionButton: (_isMember || isGeneral)
           ? FloatingActionButton(
               onPressed: _showCreatePostDialog,
               child: const Icon(Icons.edit),
@@ -1193,12 +1327,39 @@ class _CommunityDetailScreenState extends State<_CommunityDetailScreen> {
                     ),
                   ),
 
+                // General Discussion Info Banner
+                if (isGeneral)
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: CampusTheme.mint.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: CampusTheme.mint.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.verified_user_rounded,
+                            color: CampusTheme.mint, size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Campus Common Space • Open to all verified students. Ask questions, discuss campus events, and share useful resources. Smart spam moderation is active.',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white70),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Posts section
                 SectionHeader(
-                  title: 'Posts',
-                  actionLabel:
-                      _isMember ? 'New Post' : null,
-                  onAction: _isMember ? _showCreatePostDialog : null,
+                  title: isGeneral ? 'Campus Discussions' : 'Posts',
+                  actionLabel: (_isMember || isGeneral) ? 'New Post' : null,
+                  onAction: (_isMember || isGeneral) ? _showCreatePostDialog : null,
                 ),
 
                 if (_posts.isEmpty)

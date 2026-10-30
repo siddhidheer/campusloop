@@ -1,5 +1,6 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
+import '../services/rbac_service.dart';
 
 /// Endpoint for interest-based community operations.
 ///
@@ -23,6 +24,15 @@ class CommunityEndpoint extends Endpoint {
     final creator = await StudentProfile.db.findById(session, creatorProfileId);
     if (creator == null) {
       throw Exception('Creator profile not found.');
+    }
+
+    // Server-side RBAC enforcement: verify creator has permission
+    final hasPermission =
+        await RbacService.canCreateCommunity(session, creatorProfileId);
+    if (!hasPermission) {
+      throw Exception(
+        'Access denied: You do not have permission to create communities. Contact a CampusLoop administrator to request community creation access.',
+      );
     }
 
     // Check for duplicate community name
@@ -62,6 +72,38 @@ class CommunityEndpoint extends Endpoint {
     return await Community.db.findById(session, communityId);
   }
 
+  /// Retrieves or initializes the shared "General Discussion" community.
+  /// A common space where all registered CampusLoop users can discuss college-related topics.
+  Future<Community> getOrCreateGeneralDiscussion(Session session) async {
+    final existing = await Community.db.find(
+      session,
+      where: (t) => t.name.equals('General Discussion'),
+    );
+    if (existing.isNotEmpty) {
+      return existing.first;
+    }
+
+    final now = DateTime.now();
+    final generalCommunity = Community(
+      name: 'General Discussion',
+      description:
+          'A common space where all registered CampusLoop users can discuss college-related topics, ask questions, share useful information, and interact with one another.',
+      category: 'Academic',
+      interests: [
+        'Campus Life',
+        'Academics',
+        'Events',
+        'Q&A',
+        'Discussions',
+      ],
+      creatorProfileId: 1,
+      memberCount: 1,
+      createdAt: now,
+      updatedAt: now,
+    );
+    return await Community.db.insertRow(session, generalCommunity);
+  }
+
   /// List all communities with pagination.
   Future<List<Community>> listCommunities(
     Session session, {
@@ -69,6 +111,9 @@ class CommunityEndpoint extends Endpoint {
     int limit = 20,
     int offset = 0,
   }) async {
+    // Ensure the General Discussion community is always initialized
+    await getOrCreateGeneralDiscussion(session);
+
     if (category != null && category.isNotEmpty) {
       return await Community.db.find(
         session,

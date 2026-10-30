@@ -1,0 +1,16 @@
+class: UserAccount
+table: user_account
+fields:
+  email: String
+  passwordHash: String
+  salt: String
+  isEmailVerified: bool
+  emailVerifiedAt: DateTime?
+  role: String
+  canCreateCommunity: bool
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  user_account_email_idx:
+    fields: email
+    unique: true

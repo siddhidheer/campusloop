@@ -1,0 +1,15 @@
+class: ModerationLog
+table: moderation_log
+fields:
+  communityId: int
+  authorProfileId: int
+  authorEmail: String
+  postTitle: String
+  contentSnippet: String
+  matchedRule: String
+  reason: String
+  isBlocked: bool
+  timestamp: DateTime
+indexes:
+  modlog_timestamp_idx:
+    fields: timestamp

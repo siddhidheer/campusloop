@@ -1,0 +1,13 @@
+class: PermissionAuditLog
+table: permission_audit_log
+fields:
+  action: String
+  adminEmail: String
+  adminProfileId: int
+  targetEmail: String
+  targetProfileId: int
+  reason: String?
+  timestamp: DateTime
+indexes:
+  pal_timestamp_idx:
+    fields: timestamp

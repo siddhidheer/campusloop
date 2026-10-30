@@ -1,12 +1,14 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
+import '../services/spam_moderation_service.dart';
 
 /// Endpoint for community post operations.
 ///
 /// Members can create posts, admins/creators can pin/delete.
+/// Includes automated keyword-based spam and promotional content moderation.
 class CommunityPostEndpoint extends Endpoint {
   /// Create a post in a community.
-  /// Requires the author to be a community member.
+  /// Automatically runs spam detection and blocks unsolicited promotional content.
   Future<CommunityPost> createPost(
     Session session,
     CommunityPost post,
@@ -24,7 +26,14 @@ class CommunityPostEndpoint extends Endpoint {
       throw Exception('Community not found.');
     }
 
-    // Verify author is a member
+    // Verify author profile exists
+    final author =
+        await StudentProfile.db.findById(session, post.authorProfileId);
+    if (author == null) {
+      throw Exception('Author profile not found.');
+    }
+
+    // Verify author is a member (General Discussion auto-joins verified students)
     final memberships = await CommunityMembership.db.find(
       session,
       where: (t) =>
@@ -32,7 +41,34 @@ class CommunityPostEndpoint extends Endpoint {
           t.profileId.equals(post.authorProfileId),
     );
     if (memberships.isEmpty) {
-      throw Exception('You must be a community member to post.');
+      if (community.name == 'General Discussion') {
+        final membership = CommunityMembership(
+          communityId: post.communityId,
+          profileId: post.authorProfileId,
+          role: 'member',
+          joinedAt: DateTime.now(),
+        );
+        await CommunityMembership.db.insertRow(session, membership);
+      } else {
+        throw Exception('You must be a community member to post.');
+      }
+    }
+
+    // ── Backend Automated Spam Moderation ──
+    final spamCheck = await SpamModerationService.checkContent(
+      session,
+      authorProfileId: post.authorProfileId,
+      authorEmail: author.email,
+      communityId: post.communityId,
+      title: post.title,
+      content: post.content,
+    );
+
+    if (spamCheck.isSpam) {
+      throw Exception(
+        spamCheck.friendlyFeedback ??
+            'Your message could not be published because it appears to contain spam or promotional content. Please keep discussions relevant to the college community.',
+      );
     }
 
     final now = DateTime.now();
@@ -44,6 +80,24 @@ class CommunityPostEndpoint extends Endpoint {
       ..updatedAt = now;
 
     return await CommunityPost.db.insertRow(session, post);
+  }
+
+  /// Inspect a message for spam without saving (for testing / pre-checks).
+  Future<SpamCheckResult> checkMessageForSpam(
+    Session session,
+    String title,
+    String content, {
+    int profileId = 0,
+    String email = 'test@gmail.com',
+  }) async {
+    return await SpamModerationService.checkContent(
+      session,
+      authorProfileId: profileId,
+      authorEmail: email,
+      communityId: 0,
+      title: title,
+      content: content,
+    );
   }
 
   /// List posts for a community, pinned posts first.

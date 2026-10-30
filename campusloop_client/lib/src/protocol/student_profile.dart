@@ -24,6 +24,9 @@ abstract class StudentProfile
     this.bio,
     required this.studySubjects,
     required this.interests,
+    this.role,
+    this.canCreateCommunity,
+    this.isEmailVerified,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -37,6 +40,9 @@ abstract class StudentProfile
     String? bio,
     required List<String> studySubjects,
     required List<String> interests,
+    String? role,
+    bool? canCreateCommunity,
+    bool? isEmailVerified,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _StudentProfileImpl;
@@ -53,6 +59,15 @@ abstract class StudentProfile
           .deserialize<List<String>>(jsonSerialization['studySubjects']),
       interests: _ibp2gf5m.Protocol()
           .deserialize<List<String>>(jsonSerialization['interests']),
+      role: jsonSerialization['role'] as String?,
+      canCreateCommunity: jsonSerialization['canCreateCommunity'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(
+              jsonSerialization['canCreateCommunity']),
+      isEmailVerified: jsonSerialization['isEmailVerified'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(
+              jsonSerialization['isEmailVerified']),
       createdAt:
           _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
       updatedAt:
@@ -79,6 +94,12 @@ abstract class StudentProfile
 
   List<String> interests;
 
+  String? role;
+
+  bool? canCreateCommunity;
+
+  bool? isEmailVerified;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -95,6 +116,9 @@ abstract class StudentProfile
     String? bio,
     List<String>? studySubjects,
     List<String>? interests,
+    String? role,
+    bool? canCreateCommunity,
+    bool? isEmailVerified,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -110,6 +134,9 @@ abstract class StudentProfile
       if (bio != null) 'bio': bio,
       'studySubjects': studySubjects.toJson(),
       'interests': interests.toJson(),
+      if (role != null) 'role': role,
+      if (canCreateCommunity != null) 'canCreateCommunity': canCreateCommunity,
+      if (isEmailVerified != null) 'isEmailVerified': isEmailVerified,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -127,6 +154,9 @@ abstract class StudentProfile
       if (bio != null) 'bio': bio,
       'studySubjects': studySubjects.toJson(),
       'interests': interests.toJson(),
+      if (role != null) 'role': role,
+      if (canCreateCommunity != null) 'canCreateCommunity': canCreateCommunity,
+      if (isEmailVerified != null) 'isEmailVerified': isEmailVerified,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -150,6 +180,9 @@ class _StudentProfileImpl extends StudentProfile {
     String? bio,
     required List<String> studySubjects,
     required List<String> interests,
+    String? role,
+    bool? canCreateCommunity,
+    bool? isEmailVerified,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : super._(
@@ -161,6 +194,9 @@ class _StudentProfileImpl extends StudentProfile {
           bio: bio,
           studySubjects: studySubjects,
           interests: interests,
+          role: role,
+          canCreateCommunity: canCreateCommunity,
+          isEmailVerified: isEmailVerified,
           createdAt: createdAt,
           updatedAt: updatedAt,
         );
@@ -178,6 +214,9 @@ class _StudentProfileImpl extends StudentProfile {
     Object? bio = _Undefined,
     List<String>? studySubjects,
     List<String>? interests,
+    Object? role = _Undefined,
+    Object? canCreateCommunity = _Undefined,
+    Object? isEmailVerified = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -191,6 +230,12 @@ class _StudentProfileImpl extends StudentProfile {
       studySubjects:
           studySubjects ?? this.studySubjects.map((e0) => e0).toList(),
       interests: interests ?? this.interests.map((e0) => e0).toList(),
+      role: role is String? ? role : this.role,
+      canCreateCommunity: canCreateCommunity is bool?
+          ? canCreateCommunity
+          : this.canCreateCommunity,
+      isEmailVerified:
+          isEmailVerified is bool? ? isEmailVerified : this.isEmailVerified,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

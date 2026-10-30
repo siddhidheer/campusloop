@@ -11,6 +11,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
+import 'package:campusloop_client/src/protocol/auth_response.dart' as _ibgoorpw;
 import 'package:campusloop_client/src/protocol/campus_event.dart' as _isvc2zbb;
 import 'package:campusloop_client/src/protocol/campus_update.dart' as _iiyyc0fa;
 import 'package:campusloop_client/src/protocol/community.dart' as _ih1h51b7;
@@ -18,6 +19,14 @@ import 'package:campusloop_client/src/protocol/community_membership.dart'
     as _iy33aivh;
 import 'package:campusloop_client/src/protocol/community_post.dart'
     as _i5khyfwd;
+import 'package:campusloop_client/src/protocol/moderation_log.dart'
+    as _idtqwnjk;
+import 'package:campusloop_client/src/protocol/permission_audit_log.dart'
+    as _i8iokd9i;
+import 'package:campusloop_client/src/protocol/spam_check_result.dart'
+    as _i6xx1dzk;
+import 'package:campusloop_client/src/protocol/spam_keyword_rule.dart'
+    as _ie3mn6lr;
 import 'package:campusloop_client/src/protocol/student_profile.dart'
     as _iu5j17l1;
 import 'package:campusloop_client/src/protocol/study_partner_request.dart'
@@ -29,6 +38,81 @@ import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _iaic;
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
 import 'protocol.dart' as _il2as5qe;
+
+/// Endpoint for verified Gmail registration, OTP verification, and login.
+/// {@category Endpoint}
+class EndpointAuth extends _isc.EndpointRef {
+  EndpointAuth(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'auth';
+
+  /// Request a 6-digit OTP for email verification during registration.
+  /// Enforces Gmail validation, single-use OTPs, and 60-second cooldowns.
+  _ida.Future<_ibgoorpw.AuthResponse> requestRegistrationOtp(String email) =>
+      caller.callServerEndpoint<_ibgoorpw.AuthResponse>(
+        'auth',
+        'requestRegistrationOtp',
+        {'email': email},
+      );
+
+  /// Verifies the OTP code for an email address.
+  _ida.Future<_ibgoorpw.AuthResponse> verifyOtp(
+    String email,
+    String enteredOtp,
+  ) =>
+      caller.callServerEndpoint<_ibgoorpw.AuthResponse>(
+        'auth',
+        'verifyOtp',
+        {
+          'email': email,
+          'enteredOtp': enteredOtp,
+        },
+      );
+
+  /// Completes student registration after verified OTP check.
+  /// Activates the account, hashes the password, and seeds initial roles.
+  _ida.Future<_ibgoorpw.AuthResponse> completeRegistration({
+    required String displayName,
+    required String email,
+    required String password,
+    required String otp,
+    String? department,
+    int? year,
+    String? bio,
+    required List<String> studySubjects,
+    required List<String> interests,
+  }) =>
+      caller.callServerEndpoint<_ibgoorpw.AuthResponse>(
+        'auth',
+        'completeRegistration',
+        {
+          'displayName': displayName,
+          'email': email,
+          'password': password,
+          'otp': otp,
+          'department': department,
+          'year': year,
+          'bio': bio,
+          'studySubjects': studySubjects,
+          'interests': interests,
+        },
+      );
+
+  /// Secure sign in. Only registered and verified Gmail users can log in.
+  _ida.Future<_ibgoorpw.AuthResponse> login(
+    String email,
+    String password,
+  ) =>
+      caller.callServerEndpoint<_ibgoorpw.AuthResponse>(
+        'auth',
+        'login',
+        {
+          'email': email,
+          'password': password,
+        },
+      );
+}
 
 /// Endpoint for campus update/announcement operations.
 ///
@@ -112,6 +196,161 @@ class EndpointCampusUpdate extends _isc.EndpointRef {
       );
 }
 
+/// Endpoint for community permission delegation, administrator search,
+/// and spam keyword rule management.
+/// {@category Endpoint}
+class EndpointCommunityAdmin extends _isc.EndpointRef {
+  EndpointCommunityAdmin(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'communityAdmin';
+
+  /// Checks whether a profile is an administrator.
+  _ida.Future<bool> isAdministrator(int profileId) =>
+      caller.callServerEndpoint<bool>(
+        'communityAdmin',
+        'isAdministrator',
+        {'profileId': profileId},
+      );
+
+  /// Checks whether a profile has permission to create communities.
+  _ida.Future<bool> canCreateCommunity(int profileId) =>
+      caller.callServerEndpoint<bool>(
+        'communityAdmin',
+        'canCreateCommunity',
+        {'profileId': profileId},
+      );
+
+  /// Searches for an existing registered user by their verified email address.
+  /// Accessible only to administrators.
+  _ida.Future<_iu5j17l1.StudentProfile?> searchUserByEmail(
+    int adminProfileId,
+    String email,
+  ) =>
+      caller.callServerEndpoint<_iu5j17l1.StudentProfile?>(
+        'communityAdmin',
+        'searchUserByEmail',
+        {
+          'adminProfileId': adminProfileId,
+          'email': email,
+        },
+      );
+
+  /// Grants community creation permission to a registered user.
+  /// Immediately recorded in audit log.
+  _ida.Future<bool> grantPermission(
+    int adminProfileId,
+    String targetEmail, {
+    String? reason,
+  }) =>
+      caller.callServerEndpoint<bool>(
+        'communityAdmin',
+        'grantPermission',
+        {
+          'adminProfileId': adminProfileId,
+          'targetEmail': targetEmail,
+          'reason': reason,
+        },
+      );
+
+  /// Revokes previously granted community creation permission.
+  /// Cannot revoke initial administrators.
+  _ida.Future<bool> revokePermission(
+    int adminProfileId,
+    String targetEmail, {
+    String? reason,
+  }) =>
+      caller.callServerEndpoint<bool>(
+        'communityAdmin',
+        'revokePermission',
+        {
+          'adminProfileId': adminProfileId,
+          'targetEmail': targetEmail,
+          'reason': reason,
+        },
+      );
+
+  /// Lists all users who currently hold community creation permissions.
+  _ida.Future<List<_iu5j17l1.StudentProfile>> listAuthorizedUsers(
+          int adminProfileId) =>
+      caller.callServerEndpoint<List<_iu5j17l1.StudentProfile>>(
+        'communityAdmin',
+        'listAuthorizedUsers',
+        {'adminProfileId': adminProfileId},
+      );
+
+  /// Returns immutable audit logs of permission changes.
+  _ida.Future<List<_i8iokd9i.PermissionAuditLog>> getAuditLogs(
+    int adminProfileId, {
+    required int limit,
+  }) =>
+      caller.callServerEndpoint<List<_i8iokd9i.PermissionAuditLog>>(
+        'communityAdmin',
+        'getAuditLogs',
+        {
+          'adminProfileId': adminProfileId,
+          'limit': limit,
+        },
+      );
+
+  /// Lists configurable spam rules.
+  _ida.Future<List<_ie3mn6lr.SpamKeywordRule>> getSpamRules(
+          int adminProfileId) =>
+      caller.callServerEndpoint<List<_ie3mn6lr.SpamKeywordRule>>(
+        'communityAdmin',
+        'getSpamRules',
+        {'adminProfileId': adminProfileId},
+      );
+
+  /// Adds a new spam keyword / pattern rule.
+  _ida.Future<_ie3mn6lr.SpamKeywordRule> addSpamRule(
+    int adminProfileId,
+    String pattern,
+    String category,
+  ) =>
+      caller.callServerEndpoint<_ie3mn6lr.SpamKeywordRule>(
+        'communityAdmin',
+        'addSpamRule',
+        {
+          'adminProfileId': adminProfileId,
+          'pattern': pattern,
+          'category': category,
+        },
+      );
+
+  /// Toggles an existing spam rule on or off.
+  _ida.Future<bool> toggleSpamRule(
+    int adminProfileId,
+    int ruleId,
+    bool isEnabled,
+  ) =>
+      caller.callServerEndpoint<bool>(
+        'communityAdmin',
+        'toggleSpamRule',
+        {
+          'adminProfileId': adminProfileId,
+          'ruleId': ruleId,
+          'isEnabled': isEnabled,
+        },
+      );
+
+  /// Retrieves moderation logs of blocked / flagged messages.
+  _ida.Future<List<_idtqwnjk.ModerationLog>> getModerationLogs(
+    int adminProfileId, {
+    required int limit,
+    required int offset,
+  }) =>
+      caller.callServerEndpoint<List<_idtqwnjk.ModerationLog>>(
+        'communityAdmin',
+        'getModerationLogs',
+        {
+          'adminProfileId': adminProfileId,
+          'limit': limit,
+          'offset': offset,
+        },
+      );
+}
+
 /// Endpoint for interest-based community operations.
 ///
 /// Handles community CRUD, membership management, and discovery.
@@ -143,6 +382,15 @@ class EndpointCommunity extends _isc.EndpointRef {
         'community',
         'getCommunity',
         {'communityId': communityId},
+      );
+
+  /// Retrieves or initializes the shared "General Discussion" community.
+  /// A common space where all registered CampusLoop users can discuss college-related topics.
+  _ida.Future<_ih1h51b7.Community> getOrCreateGeneralDiscussion() =>
+      caller.callServerEndpoint<_ih1h51b7.Community>(
+        'community',
+        'getOrCreateGeneralDiscussion',
+        {},
       );
 
   /// List all communities with pagination.
@@ -248,6 +496,7 @@ class EndpointCommunity extends _isc.EndpointRef {
 /// Endpoint for community post operations.
 ///
 /// Members can create posts, admins/creators can pin/delete.
+/// Includes automated keyword-based spam and promotional content moderation.
 /// {@category Endpoint}
 class EndpointCommunityPost extends _isc.EndpointRef {
   EndpointCommunityPost(_isc.EndpointCaller caller) : super(caller);
@@ -256,13 +505,31 @@ class EndpointCommunityPost extends _isc.EndpointRef {
   String get name => 'communityPost';
 
   /// Create a post in a community.
-  /// Requires the author to be a community member.
+  /// Automatically runs spam detection and blocks unsolicited promotional content.
   _ida.Future<_i5khyfwd.CommunityPost> createPost(
           _i5khyfwd.CommunityPost post) =>
       caller.callServerEndpoint<_i5khyfwd.CommunityPost>(
         'communityPost',
         'createPost',
         {'post': post},
+      );
+
+  /// Inspect a message for spam without saving (for testing / pre-checks).
+  _ida.Future<_i6xx1dzk.SpamCheckResult> checkMessageForSpam(
+    String title,
+    String content, {
+    required int profileId,
+    required String email,
+  }) =>
+      caller.callServerEndpoint<_i6xx1dzk.SpamCheckResult>(
+        'communityPost',
+        'checkMessageForSpam',
+        {
+          'title': title,
+          'content': content,
+          'profileId': profileId,
+          'email': email,
+        },
       );
 
   /// List posts for a community, pinned posts first.
@@ -640,7 +907,9 @@ class Client extends _isc.ServerpodClientShared {
               disconnectStreamsOnLostInternetConnection,
           httpClientOverride: httpClientOverride,
         ) {
+    auth = EndpointAuth(this);
     campusUpdate = EndpointCampusUpdate(this);
+    communityAdmin = EndpointCommunityAdmin(this);
     community = EndpointCommunity(this);
     communityPost = EndpointCommunityPost(this);
     event = EndpointEvent(this);
@@ -650,7 +919,11 @@ class Client extends _isc.ServerpodClientShared {
     modules = Modules(this);
   }
 
+  late final EndpointAuth auth;
+
   late final EndpointCampusUpdate campusUpdate;
+
+  late final EndpointCommunityAdmin communityAdmin;
 
   late final EndpointCommunity community;
 
@@ -668,7 +941,9 @@ class Client extends _isc.ServerpodClientShared {
 
   @override
   Map<String, _isc.EndpointRef> get endpointRefLookup => {
+        'auth': auth,
         'campusUpdate': campusUpdate,
+        'communityAdmin': communityAdmin,
         'community': community,
         'communityPost': communityPost,
         'event': event,
