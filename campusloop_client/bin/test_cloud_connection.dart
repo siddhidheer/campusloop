@@ -23,6 +23,10 @@ void main() async {
       print(' - [${e.category}] ${e.title} at ${e.venue}');
     }
 
+    print('\nTesting client.auth.requestRegistrationOtp with a Gmail address...');
+    final authRes = await client.auth.requestRegistrationOtp('teststudent123@gmail.com');
+    print('Auth Response from Live Cloud: success=${authRes.success}, message=${authRes.message}');
+
     print('\nAll tests passed! Cloud deployment is fully verified and functional.');
   } catch (e, st) {
     print('Error calling cloud server: $e');

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:serverpod/serverpod.dart';
+import 'package:serverpod_auth_idp_server/src/providers/email/business/util/serverpod_cloud_email_client.dart';
 
 /// Service for email validation, secure OTP generation, and email delivery.
 class EmailService {
@@ -68,7 +69,7 @@ class EmailService {
   }
 
   /// Dispatches the OTP email to the recipient.
-  /// Uses SMTP if credentials are configured in passwords.yaml / environment,
+  /// Uses Serverpod Cloud transactional email or SMTP if configured,
   /// otherwise logs the OTP securely to the backend audit logs.
   static Future<bool> sendOtpEmail({
     required Session session,
@@ -76,6 +77,31 @@ class EmailService {
     required String otp,
     required int expirationMinutes,
   }) async {
+    // 1. Try Serverpod Cloud Email Service first (hosted transactional email)
+    final cloudEmailKey = session.serverpod.getPassword('scloudAuthEmailKey');
+    if (cloudEmailKey != null && cloudEmailKey.isNotEmpty) {
+      try {
+        final emailClient = ServerpodCloudEmailClient();
+        await emailClient.sendEmail(
+          token: cloudEmailKey,
+          emailType: ServerpodCloudEmailType.signup,
+          email: recipientEmail,
+          projectName: 'CampusLoop',
+          authCode: otp,
+        );
+        session.log(
+          'Email OTP delivered to $recipientEmail via Serverpod Cloud email service',
+          level: LogLevel.info,
+        );
+        return true;
+      } catch (e) {
+        session.log(
+          'Failed to send via Serverpod Cloud Email service: $e. Checking SMTP / fallback.',
+          level: LogLevel.warning,
+        );
+      }
+    }
+
     final smtpHost = Platform.environment['SMTP_HOST'] ??
         session.serverpod.getPassword('smtpHost');
     final smtpPort = int.tryParse(Platform.environment['SMTP_PORT'] ??

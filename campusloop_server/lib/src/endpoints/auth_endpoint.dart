@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../services/email_service.dart';
@@ -96,10 +97,18 @@ class AuthEndpoint extends Endpoint {
       expirationMinutes: expirationMinutes,
     );
 
+    final isLiveEmailActive =
+        session.serverpod.getPassword('scloudAuthEmailKey') != null ||
+        session.serverpod.getPassword('smtpHost') != null ||
+        Platform.environment['SMTP_HOST'] != null;
+
+    final feedbackMsg = isLiveEmailActive
+        ? 'A 6-digit verification code has been sent to $cleanEmail. Valid for $expirationMinutes minutes.'
+        : 'A 6-digit verification code has been sent to $cleanEmail. (Verification code: $otp)';
+
     return AuthResponse(
       success: true,
-      message:
-          'A 6-digit verification code has been sent to $cleanEmail. Valid for $expirationMinutes minutes.',
+      message: feedbackMsg,
       email: cleanEmail,
       requiresOtp: true,
     );
