@@ -4,6 +4,7 @@ import 'package:campusloop_client/campusloop_client.dart';
 import '../../main.dart';
 import '../../models/study_collab_models.dart';
 import '../../models/campus_safety_models.dart';
+import '../../widgets/common/student_avatar_widget.dart';
 import '../../theme/campus_theme.dart';
 import '../../widgets/common/campus_widgets.dart';
 import 'study_room_screen.dart';
@@ -326,91 +327,92 @@ class _EventsTabState extends State<_EventsTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Feature Hero Banner
-        CampusFeatureBanner(
-          imageAsset: 'assets/images/events_banner.jpg',
-          fallbackAsset: 'assets/images/event_tech.jpg',
-          tag: 'Hackathons & Grand Fests',
-          tagColor: CampusTheme.coral,
-          title: 'Campus Events & Workshops',
-          subtitle:
-              'Join tech sprints, guest seminars, and cultural festivals happening across blocks.',
-          actionLabel: 'Host an Event +',
-          onAction: _showCreateEventDialog,
-        ),
+    return RefreshIndicator(
+      onRefresh: _loadEvents,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 80),
+        children: [
+          // Feature Hero Banner
+          CampusFeatureBanner(
+            imageAsset: 'assets/images/events_banner.jpg',
+            fallbackAsset: 'assets/images/event_tech.jpg',
+            tag: 'Hackathons & Grand Fests',
+            tagColor: CampusTheme.coral,
+            title: 'Campus Events & Workshops',
+            subtitle:
+                'Join tech sprints, guest seminars, and cultural festivals happening across blocks.',
+            actionLabel: 'Host an Event +',
+            onAction: _showCreateEventDialog,
+          ),
 
-        // Search bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search events...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _isSearching
-                  ? IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _isSearching = false);
-                        _loadEvents();
-                      },
-                    )
-                  : null,
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search events...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _isSearching
+                    ? IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _isSearching = false);
+                          _loadEvents();
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (q) {
+                setState(() => _isSearching = q.isNotEmpty);
+                _searchEvents(q);
+              },
             ),
-            onChanged: (q) {
-              setState(() => _isSearching = q.isNotEmpty);
-              _searchEvents(q);
-            },
-          ),
-        ),
-
-        // Category filters
-        if (!_isSearching && _categories.isNotEmpty)
-          CategoryFilterChips(
-            categories: _categories,
-            selected: _selectedCategory,
-            onSelected: (cat) {
-              setState(() => _selectedCategory = cat);
-              _loadEvents();
-            },
           ),
 
-        const SizedBox(height: 8),
+          // Category filters
+          if (!_isSearching && _categories.isNotEmpty)
+            CategoryFilterChips(
+              categories: _categories,
+              selected: _selectedCategory,
+              onSelected: (cat) {
+                setState(() => _selectedCategory = cat);
+                _loadEvents();
+              },
+            ),
 
-        // Events list
-        Expanded(
-          child: _isLoading
-              ? const CampusLoader()
-              : _error != null
-                  ? CampusError(message: _error!, onRetry: _loadEvents)
-                  : _events.isEmpty
-                      ? CampusEmptyState(
-                          icon: Icons.event_outlined,
-                          title: _isSearching
-                              ? 'No results found'
-                              : 'No upcoming events',
-                          subtitle: _isSearching
-                              ? 'Try a different search term'
-                              : 'Create the first event!',
-                          actionLabel: 'Create Event',
-                          onAction: _showCreateEventDialog,
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadEvents,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 80),
-                            itemCount: _events.length,
-                            itemBuilder: (ctx, i) => _EventCard(
-                              event: _events[i],
-                              onStatusChanged: _loadEvents,
-                            ),
-                          ),
-                        ),
-        ),
-      ],
+          const SizedBox(height: 8),
+
+          // Events list content
+          if (_isLoading)
+            const SizedBox(
+              height: 260,
+              child: CampusLoader(),
+            )
+          else if (_error != null)
+            CampusError(message: _error!, onRetry: _loadEvents)
+          else if (_events.isEmpty)
+            CampusEmptyState(
+              icon: Icons.event_outlined,
+              title: _isSearching
+                  ? 'No results found'
+                  : 'No upcoming events',
+              subtitle: _isSearching
+                  ? 'Try a different search term'
+                  : 'Create the first event!',
+              actionLabel: 'Create Event',
+              onAction: _showCreateEventDialog,
+            )
+          else
+            ..._events.map(
+              (event) => _EventCard(
+                event: event,
+                onStatusChanged: _loadEvents,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1364,7 +1366,8 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
       return true;
     }).toList();
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 80),
       children: [
         // Feature Hero Banner
         CampusFeatureBanner(
@@ -1438,58 +1441,45 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
         ),
         const SizedBox(height: 8),
 
-        Expanded(
-          child: filtered.isEmpty
-              ? const CampusEmptyState(
-                  icon: Icons.person_search_rounded,
-                  title: 'No peers found',
-                  subtitle:
-                      'Try selecting another interest or invite classmates to join!',
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, i) {
-                    final partner = filtered[i];
-                    final isConnected = _connections.any((c) =>
-                        (c.fromProfileId == partner.id &&
-                            c.toProfileId == currentProfileId) ||
-                        (c.toProfileId == partner.id &&
-                            c.fromProfileId == currentProfileId));
-                    final isPending = _outgoing
-                        .any((c) => c.toProfileId == partner.id);
-                    StudyPartnerRequest? incomingReq;
-                    for (final r in _incoming) {
-                      if (r.fromProfileId == partner.id) {
-                        incomingReq = r;
-                        break;
-                      }
-                    }
+        if (filtered.isEmpty)
+          const CampusEmptyState(
+            icon: Icons.person_search_rounded,
+            title: 'No peers found',
+            subtitle:
+                'Try selecting another interest or invite classmates to join!',
+          )
+        else
+          ...filtered.map((partner) {
+            final isConnected = _connections.any((c) =>
+                (c.fromProfileId == partner.id &&
+                    c.toProfileId == currentProfileId) ||
+                (c.toProfileId == partner.id &&
+                    c.fromProfileId == currentProfileId));
+            final isPending = _outgoing
+                .any((c) => c.toProfileId == partner.id);
+            StudyPartnerRequest? incomingReq;
+            for (final r in _incoming) {
+              if (r.fromProfileId == partner.id) {
+                incomingReq = r;
+                break;
+              }
+            }
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: CampusTheme.primaryOrange
-                                  .withValues(alpha: 0.2),
-                              child: Text(
-                                partner.displayName.isNotEmpty
-                                    ? partner.displayName[0].toUpperCase()
-                                    : 'S',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: CampusTheme.primaryOrange,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
+            return Card(
+              margin: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 6),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    StudentAvatarWidget(
+                      displayName: partner.displayName,
+                      avatarUrl:
+                          StudentSocials.fromBio(partner.bio).avatar,
+                      radius: 24,
+                    ),
+                    const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1796,9 +1786,7 @@ class _StudyPartnersTabState extends State<_StudyPartnersTab> {
                         ),
                       ),
                     );
-                  },
-                ),
-        ),
+                  }),
       ],
     );
   }

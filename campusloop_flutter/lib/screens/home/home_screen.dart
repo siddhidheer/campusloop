@@ -1068,7 +1068,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 185,
+            height: 196,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1154,6 +1154,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     height: 1.25,
                   ),
                 ),
+                if (event.description.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    event.description.trim(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: CampusTheme.textMuted,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 Row(
                   children: [

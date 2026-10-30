@@ -346,78 +346,78 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
             ? Icons.add
             : Icons.lock_outline_rounded),
       ),
-      body: Column(
-        children: [
-          // Feature Hero Banner
-          CampusFeatureBanner(
-            imageAsset: 'assets/images/communities_banner.jpg',
-            fallbackAsset: 'assets/images/event_cultural.jpg',
-            tag: 'Student Clubs & Hubs',
-            tagColor: CampusTheme.mint,
-            title: 'Campus Communities',
-            subtitle:
-                'Collaborate with coding clubs, design guilds, robotics labs, and media teams.',
-            actionLabel:
-                _canCreateCommunity ? 'Create Club +' : 'Restricted Access',
-            onAction: _canCreateCommunity
-                ? _showCreateCommunityDialog
-                : _showRestrictedCreateDialog,
-          ),
-
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search communities...',
-                prefixIcon: Icon(Icons.search, size: 20),
-              ),
-              onChanged: _searchCommunities,
+      body: RefreshIndicator(
+        onRefresh: _loadCommunities,
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 80),
+          children: [
+            // Feature Hero Banner
+            CampusFeatureBanner(
+              imageAsset: 'assets/images/communities_banner.jpg',
+              fallbackAsset: 'assets/images/event_cultural.jpg',
+              tag: 'Student Clubs & Hubs',
+              tagColor: CampusTheme.mint,
+              title: 'Campus Communities',
+              subtitle:
+                  'Collaborate with coding clubs, design guilds, robotics labs, and media teams.',
+              actionLabel:
+                  _canCreateCommunity ? 'Create Club +' : 'Restricted Access',
+              onAction: _canCreateCommunity
+                  ? _showCreateCommunityDialog
+                  : _showRestrictedCreateDialog,
             ),
-          ),
 
-          // Communities list
-          Expanded(
-            child: _isLoading
-                ? const CampusLoader()
-                : _error != null
-                    ? CampusError(
-                        message: _error!, onRetry: _loadCommunities)
-                    : displayedCommunities.isEmpty
-                        ? CampusEmptyState(
-                            icon: Icons.groups_outlined,
-                            title: _showJoinedOnly
-                                ? 'Not a member of any community'
-                                : 'No communities found',
-                            subtitle: 'Create the first community!',
-                            actionLabel: 'Create',
-                            onAction: _showCreateCommunityDialog,
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _loadCommunities,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.only(bottom: 80),
-                              itemCount: displayedCommunities.length,
-                              itemBuilder: (ctx, i) {
-                                final community = displayedCommunities[i];
-                                final isMember = _joinedCommunities
-                                    .any((c) => c.id == community.id);
-                                return _CommunityCard(
-                                  community: community,
-                                  isMember: isMember,
-                                  onJoin: () =>
-                                      _joinCommunity(community.id!),
-                                  onLeave: () =>
-                                      _leaveCommunity(community.id!),
-                                  onTap: () =>
-                                      _openCommunityDetail(community),
-                                );
-                              },
-                            ),
-                          ),
-          ),
-        ],
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: 'Search communities...',
+                  prefixIcon: Icon(Icons.search, size: 20),
+                ),
+                onChanged: _searchCommunities,
+              ),
+            ),
+
+            // Communities list
+            if (_isLoading)
+              const SizedBox(
+                height: 260,
+                child: CampusLoader(),
+              )
+            else if (_error != null)
+              CampusError(
+                  message: _error!, onRetry: _loadCommunities)
+            else if (displayedCommunities.isEmpty)
+              CampusEmptyState(
+                icon: Icons.groups_outlined,
+                title: _showJoinedOnly
+                    ? 'Not a member of any community'
+                    : 'No communities found',
+                subtitle: 'Create the first community!',
+                actionLabel: 'Create',
+                onAction: _showCreateCommunityDialog,
+              )
+            else
+              ...displayedCommunities.map(
+                (community) {
+                  final isMember = _joinedCommunities
+                      .any((c) => c.id == community.id);
+                  return _CommunityCard(
+                    community: community,
+                    isMember: isMember,
+                    onJoin: () =>
+                        _joinCommunity(community.id!),
+                    onLeave: () =>
+                        _leaveCommunity(community.id!),
+                    onTap: () =>
+                        _openCommunityDetail(community),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
   }

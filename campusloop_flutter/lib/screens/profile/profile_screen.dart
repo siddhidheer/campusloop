@@ -8,6 +8,7 @@ import '../../widgets/common/campus_widgets.dart';
 import '../auth/login_screen.dart';
 import '../../models/study_collab_models.dart';
 import '../../models/campus_safety_models.dart';
+import '../../widgets/common/student_avatar_widget.dart';
 
 /// Student Profile screen — view and edit profile information.
 class ProfileScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Community> _joinedCommunities = [];
   List<StudyPartnerRequest> _connections = [];
   String _university = '';
+  String? _avatarUrl;
   bool _isLoading = true;
   String? _error;
 
@@ -45,10 +47,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Load saved university / college
       String univ = '';
+      String? avatar;
       try {
         final prefs = await SharedPreferences.getInstance();
         if (profile?.email != null) {
           univ = prefs.getString('university_${profile!.email}') ?? '';
+          avatar = await StudentSocials.loadAvatar(profile.email, profile.bio);
         }
         if (univ.isEmpty) {
           univ = prefs.getString('current_university') ??
@@ -63,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _joinedCommunities = communities;
           _connections = connections;
           _university = univ;
+          _avatarUrl = avatar;
           _isLoading = false;
         });
       }
@@ -72,6 +77,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _error = e.toString();
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _updateAvatar(String newAvatar) async {
+    if (_profile == null) return;
+    setState(() => _avatarUrl = newAvatar);
+    try {
+      final currentSocials = StudentSocials.fromBio(_profile!.bio);
+      final updatedSocials = StudentSocials(
+        discord: currentSocials.discord,
+        linkedin: currentSocials.linkedin,
+        whatsapp: currentSocials.whatsapp,
+        avatar: newAvatar,
+      );
+      final cleanBio = StudentSocials.cleanBio(_profile!.bio);
+      final newBio = StudentSocials.embedInBio(cleanBio, updatedSocials);
+      _profile!.bio = newBio.isNotEmpty ? newBio : null;
+
+      await client.profile.updateProfile(_profile!);
+      if (_profile?.email != null) {
+        await StudentSocials.saveLocalSocials(_profile!.email, updatedSocials);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Profile picture updated!'),
+            backgroundColor: CampusTheme.mint,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating picture: $e'),
+            backgroundColor: CampusTheme.coral,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeAvatar() async {
+    if (_profile == null) return;
+    setState(() => _avatarUrl = null);
+    try {
+      final currentSocials = StudentSocials.fromBio(_profile!.bio);
+      final updatedSocials = StudentSocials(
+        discord: currentSocials.discord,
+        linkedin: currentSocials.linkedin,
+        whatsapp: currentSocials.whatsapp,
+        avatar: null,
+      );
+      final cleanBio = StudentSocials.cleanBio(_profile!.bio);
+      final newBio = StudentSocials.embedInBio(cleanBio, updatedSocials);
+      _profile!.bio = newBio.isNotEmpty ? newBio : null;
+
+      await client.profile.updateProfile(_profile!);
+      if (_profile?.email != null) {
+        await StudentSocials.saveLocalSocials(_profile!.email, updatedSocials);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Profile picture removed.'),
+            backgroundColor: CampusTheme.softBlue,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: CampusTheme.coral,
+          ),
+        );
       }
     }
   }
@@ -97,6 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final whatsappCtrl =
         TextEditingController(text: existingSocials.whatsapp ?? '');
     int? year = _profile!.year;
+    String? dialogAvatar = _avatarUrl ?? existingSocials.avatar;
 
     showDialog(
       context: context,
@@ -108,6 +194,116 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Profile Picture Row
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: CampusTheme.darkSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Row(
+                    children: [
+                      StudentAvatarWidget(
+                        displayName: _profile!.displayName,
+                        avatarUrl: dialogAvatar,
+                        radius: 26,
+                        showEditBadge: false,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Profile Picture',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              dialogAvatar != null && dialogAvatar!.isNotEmpty
+                                  ? 'Custom photo active'
+                                  : 'Optional (Default: initials)',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: CampusTheme.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    side: const BorderSide(
+                                        color: CampusTheme.primaryOrange),
+                                  ),
+                                  icon: const Icon(Icons.camera_alt_outlined,
+                                      size: 13,
+                                      color: CampusTheme.primaryOrange),
+                                  label: const Text(
+                                    'Change',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: CampusTheme.primaryOrange,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    StudentAvatarWidget.showPickerSheet(
+                                      context: ctx,
+                                      currentAvatar: dialogAvatar ?? '',
+                                      onAvatarSelected: (pic) {
+                                        setDialogState(
+                                            () => dialogAvatar = pic);
+                                      },
+                                      onAvatarRemoved: () {
+                                        setDialogState(
+                                            () => dialogAvatar = null);
+                                      },
+                                    );
+                                  },
+                                ),
+                                if (dialogAvatar != null &&
+                                    dialogAvatar!.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 4),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    onPressed: () {
+                                      setDialogState(
+                                          () => dialogAvatar = null);
+                                    },
+                                    child: const Text(
+                                      'Remove',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: CampusTheme.coral,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 TextField(
                   controller: nameCtrl,
                   decoration:
@@ -234,6 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     whatsapp: whatsappCtrl.text.trim().isNotEmpty
                         ? whatsappCtrl.text.trim()
                         : null,
+                    avatar: dialogAvatar,
                   );
 
                   final rawBio = StudentSocials.embedInBio(
@@ -474,6 +671,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await prefs.remove('pwd_$email');
       await prefs.remove('name_$email');
       await prefs.remove('university_$email');
+      await prefs.remove('avatar_$email');
 
       // Remove email from local registered emails
       final localRegisteredEmails =
@@ -1016,19 +1214,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 42,
-            backgroundColor: CampusTheme.deepTeal.withValues(alpha: 0.3),
-            child: Text(
-              _profile!.displayName[0].toUpperCase(),
-              style: const TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.w700,
-                color: CampusTheme.deepTeal,
-              ),
+          StudentAvatarWidget(
+            displayName: _profile!.displayName,
+            avatarUrl: _avatarUrl,
+            radius: 46,
+            showEditBadge: true,
+            onEdit: () {
+              StudentAvatarWidget.showPickerSheet(
+                context: context,
+                currentAvatar: _avatarUrl ?? '',
+                onAvatarSelected: (pic) => _updateAvatar(pic),
+                onAvatarRemoved: _removeAvatar,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () {
+              StudentAvatarWidget.showPickerSheet(
+                context: context,
+                currentAvatar: _avatarUrl ?? '',
+                onAvatarSelected: (pic) => _updateAvatar(pic),
+                onAvatarRemoved: _removeAvatar,
+              );
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _avatarUrl != null && _avatarUrl!.isNotEmpty
+                      ? Icons.edit_rounded
+                      : Icons.add_a_photo_outlined,
+                  size: 13,
+                  color: CampusTheme.mint,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _avatarUrl != null && _avatarUrl!.isNotEmpty
+                      ? 'Edit picture'
+                      : 'Add profile picture',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: CampusTheme.mint,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
             _profile!.displayName,
             style: const TextStyle(

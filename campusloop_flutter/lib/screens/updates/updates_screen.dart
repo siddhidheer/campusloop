@@ -289,66 +289,65 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
         onPressed: _showCreateUpdateDialog,
         child: const Icon(Icons.add),
       ),
-      body: Column(
-        children: [
-          // Feature Hero Banner
-          CampusFeatureBanner(
-            imageAsset: 'assets/images/updates_banner.jpg',
-            fallbackAsset: 'assets/images/campus_hero.jpg',
-            tag: 'Official Campus Board',
-            tagColor: CampusTheme.lavender,
-            title: 'Verified Announcements',
-            subtitle:
-                'Get official alerts for exam schedules, campus Wi-Fi upgrades, and student opportunities.',
-            actionLabel: 'Publish Notice +',
-            onAction: _showCreateUpdateDialog,
-          ),
-
-          // Category filter
-          if (_categories.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: CategoryFilterChips(
-                categories: _categories,
-                selected: _selectedCategory,
-                onSelected: (cat) {
-                  setState(() => _selectedCategory = cat);
-                  _loadUpdates();
-                },
-              ),
+      body: RefreshIndicator(
+        onRefresh: _loadUpdates,
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 80),
+          children: [
+            // Feature Hero Banner
+            CampusFeatureBanner(
+              imageAsset: 'assets/images/updates_banner.jpg',
+              fallbackAsset: 'assets/images/campus_hero.jpg',
+              tag: 'Official Campus Board',
+              tagColor: CampusTheme.lavender,
+              title: 'Verified Announcements',
+              subtitle:
+                  'Get official alerts for exam schedules, campus Wi-Fi upgrades, and student opportunities.',
+              actionLabel: 'Publish Notice +',
+              onAction: _showCreateUpdateDialog,
             ),
 
-          const SizedBox(height: 8),
+            // Category filter
+            if (_categories.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: CategoryFilterChips(
+                  categories: _categories,
+                  selected: _selectedCategory,
+                  onSelected: (cat) {
+                    setState(() => _selectedCategory = cat);
+                    _loadUpdates();
+                  },
+                ),
+              ),
 
-          Expanded(
-            child: _isLoading
-                ? const CampusLoader()
-                : _error != null
-                    ? CampusError(
-                        message: _error!, onRetry: _loadUpdates)
-                    : _updates.isEmpty
-                        ? CampusEmptyState(
-                            icon: Icons.campaign_outlined,
-                            title: 'No updates yet',
-                            subtitle: _selectedCategory != null
-                                ? 'No updates in this category'
-                                : 'Campus announcements will appear here',
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _loadUpdates,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.only(bottom: 80),
-                              itemCount: _updates.length,
-                              itemBuilder: (ctx, i) =>
-                                  _UpdateCard(
-                                    update: _updates[i],
-                                    onTap: () =>
-                                        _showUpdateDetail(_updates[i]),
-                                  ),
-                            ),
-                          ),
-          ),
-        ],
+            const SizedBox(height: 8),
+
+            if (_isLoading)
+              const SizedBox(
+                height: 260,
+                child: CampusLoader(),
+              )
+            else if (_error != null)
+              CampusError(
+                  message: _error!, onRetry: _loadUpdates)
+            else if (_updates.isEmpty)
+              CampusEmptyState(
+                icon: Icons.campaign_outlined,
+                title: 'No updates yet',
+                subtitle: _selectedCategory != null
+                    ? 'No updates in this category'
+                    : 'Campus announcements will appear here',
+              )
+            else
+              ..._updates.map(
+                (update) => _UpdateCard(
+                  update: update,
+                  onTap: () => _showUpdateDetail(update),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

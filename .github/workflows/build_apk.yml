@@ -75,17 +75,18 @@ jobs:
             2. Open the downloaded file and select **Install** / **Update**.
             3. Explore all campus features, verified student community, and real-time moderation!
 
-            #### 🌟 What's New in v1.1.0:
-            1. **🔒 Verified Gmail Registration & Login**:
-               - Cryptographic 6-digit OTP verification for genuine `@gmail.com` accounts.
-               - Salted SHA-256 secure hash, 5-minute expiry, and 60-second cooldown timer.
-               - Clean account logout and seamless multi-account switching.
-            2. **👑 Restricted Community Creation (RBAC)**:
-               - Community creation restricted to designated campus administrators on the Serverpod backend.
-               - Administrative delegation portal to search users by email, grant/revoke permissions, and review immutable audit logs.
-            3. **💬 General Discussion with Smart Moderation**:
-               - Default public forum open to all verified students.
-               - Automatic keyword moderation with leetspeak normalization, duplicate detection, and academic context tolerance.
+            #### 🌟 What's New in this build:
+            1. **📸 Optional & Updatable Profile Picture**:
+               - Upload photos from gallery, pick from student avatar presets, or enter custom image URLs with live preview.
+               - Interactive camera edit badge on avatar and inside Edit Profile; reversible to initials anytime.
+            2. **📅 Event Descriptions in Upcoming Events**:
+               - Descriptions now populate home upcoming event cards, eliminating empty vertical gaps.
+            3. **📱 Smooth Scroll across Discover, Communities & Updates**:
+               - Feature hero banners and creation actions now scroll with the content so cards fill the entire screen.
+            4. **💬 Live General Discussion Chat & Author Badges**:
+               - Docked chat composer bar and author details (name, branch, year, role & verified shield) across all posts.
+            5. **🔒 Clean Multi-Account Switching**:
+               - Full session clearing on logout without automatic login redirects.
           files: |
             campusloop_flutter/build/app/outputs/flutter-apk/app-release.apk
             campusloop_flutter/build/app/outputs/flutter-apk/CampusLoop.apk
